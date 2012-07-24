@@ -1,0 +1,27 @@
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+
+#Add Trilinos information to the include and link lines
+include_directories(${Trilinos_INCLUDE_DIRS} ${Trilinos_TPL_INCLUDE_DIRS} )
+link_directories(${Trilinos_LIBRARY_DIRS} ${Trilinos_TPL_LIBRARY_DIRS} )
+# /Library/Frameworks/QtCore.framework /Library/Frameworks/QtGui.framework)
+
+#set unique libs for this example
+#set (MY_LIBS ./MyMultiVec.hpp ./MyOperator.hpp ./MyBetterOperator.hpp)
+
+#set trilinos libraries to link (LINK_LIBRARIES)
+set(LINK_LIBRARIES ${Epetra_LIBRARIES} ${Galeri_LIBRARIES} ${Teuchos_LIBRARIES} ${Ifpack_LIBRARIES} ${Belos_LIBRARIES} ${Tpetra_LIBRARIES})
+
+#copy data file over
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mhd1280b.cua ${CMAKE_CURRENT_BINARY_DIR}/mhd1280b.cua COPYONLY)
+
+#add executable + test
+add_executable(Belos_BlockCG Belos_BlockCG.cpp)
+target_link_libraries(Belos_BlockCG  ${LINK_LIBRARIES} )
+#${MY_LIBS})
+add_test(Belos_BlockCG ${EXECUTABLE_OUTPUT_PATH}/Belos_BlockCG --verbose)
+add_test(Belos_BlockCG_mpi mpiexec Belos_BlockCG --verbose)
+
+
+INCLUDE(Dart)
+INCLUDE(CPack)
+

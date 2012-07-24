@@ -1,0 +1,183 @@
+<!--This is the .xml document that optika uses to format the gui-->
+<!--To create the gui optika can accept a xml document that describes a parameter list object. in this document indented objects are al members of the encapsulating field.-->
+<!--First the ParameterList is created and given a name-->
+<ParameterList name="Example Run Parameters">
+	<!--Within are the different parameters. declaring a parameter requires a name, a value and a type. An id is recommended for interactions with other things. the docString describes the parameter and can be seen by hovering over the value inside the gui. A validator id can also be included to identify a validator to moniter the inputs-->
+	<Parameter id="1" name="Example Suite" value="beginner" type="string"
+		docString="Indicates which set of examples to execute" validatorId="1" />
+	<Parameter id="2" name="Example" value="Epetra_Simple_Vector" type="string"
+		docString="Indicates which specific example should be executed" />
+	<!--Nested parameter lists are valid options with this gui and will create an expandable box for the nested parameters-->
+	<ParameterList id="10" name="Advanced Example Parameters">
+		<Parameter id="4" name="numNodesX" value="5" type="int"
+			docString="Number of local nodes in X direction" validatorId="0" />
+		<Parameter id="5" name="numNodesY" value="5" type="int"
+			docString="Number of local nodes in Y direction" validatorId="0" />
+		<Parameter id="6" name="numProcsX" value="1" type="int"
+			docString="Number of processors in X direction" validatorId="0" />
+		<Parameter id="7" name="numProcsY" value="1" type="int"
+			docString="Number of processors in Y direction" validatorId="0" />
+		<Parameter id="8" name="numPoints" value="25" type="string"
+			docString="Number of Points in stencil" validatorId="6" />
+		<Parameter id="9" name="Report Type" value="verbose" type="string"
+			docString="Indicates the type of output from the program" validatorId="5" />
+		<Parameter id="11" name="Input File" value="FourByFour.xml" type="string"
+			docString="the name of the input xml file" />
+	</ParameterList>
+	<Parameter id="3" name="Number of threads" value="1" type="int"
+		docString="Indicates how many threads to use" validatorId="0" />
+<!--At the end of the parameters You can also add a validators to moniter the input of any given parameter-->
+<!--There are many different validators for the different types of parameters including number and string validators-->
+<Validators>
+	<!--The EnhancedNumberValidator can moniter both integers and doubles. This is specified in the type of the validator. the max and min values can also be specified. Validators also get a validator id to identify each unique validator-->	
+	<Validator type="EnhancedNumberValidator(int)" min="1" validatorId="0" />
+	<!--String validators moniter a string parameter giving only a specified list of valid string options-->
+	<Validator type="StringValidator" validatorId="1">
+		<!--Valid strings are listed within the validator-->
+		<String value="beginner" />
+		<String value="advanced" />
+		<String value="custom" />
+	</Validator>
+	<Validator type="StringValidator" validatorId="2">
+		<String value="Epetra_Basic_Perf" />
+		<String value="CurlLSFEM_example" />
+		<String value="DivLSFEM_example" />
+		<String value="Stratimikos_Solver_Driver" />
+		<String value="Stratimikos_Preconditioner" />
+	</Validator>
+	<Validator type="StringValidator" validatorId="3">
+		<String value="Anasazi_Block_Davidson" />
+		<String value="Anasazi_Block_KrylovSchur" />
+		<String value="Anasazi_LOBPCG" />
+		<String value="Epetra_Power_Method" />
+		<String value="Epetra_Simple_Vector" />
+		<String value="Galeri_Linear_System" />
+		<String value="Ifpack_Preconditioner_Factory" />
+		<String value="Linear_Solver_Belos" />
+		<String value="Linear_Solver_Ifpack" />
+		<String value="Linear_Solver_ml" />
+		<String value="Linear_Solver_mlMultiGrid" />
+		<String value="NOX_Newton1" />
+		<String value="NOX_Newton2" />
+		<String value="Teuchos_Blas" />
+		<String value="Teuchos_CLP" />
+		<String value="Teuchos_LAPACK" />
+		<String value="Teuchos_PL" />
+		<String value="Teuchos_RCP" />
+		<String value="Teuchos_SDM" />
+		<String value="Teuchos_Time" />
+		<String value="Tpetra_Init" />
+		<String value="Tpetra_Vector" />
+	</Validator>
+	<Validator type="StringValidator" validatorId="4">
+		<String value="all" />
+		<String value="My_Example" />
+	</Validator>
+	<Validator type="StringValidator" validatorId="5">
+		<String value="none" />
+		<String value="verbose" />
+		<String value="summary" />
+	</Validator>
+	<Validator type="StringValidator" validatorId="6">
+		<String value="5" />
+		<String value="9" />
+		<String value="25" />
+	</Validator>
+	<Validator type="StringValidator" validatorId="7">
+		<String value="FourByFour.xml" />
+		<String value="FourByFour.amesos.xml" />
+		<String value="FourByFour.aztecoo.np.xml" />
+		<String value="FourByFour.aztecoo.ifpack.xml" />
+		<String value="FourByFour.aztecoo.ifpack.adjoint.xml" />
+		<String value="FourByFour.aztecoo.ml.xml" />
+		<String value="FourByFour.belos.np.xml" />
+		<String value="FourByFour.belos.ifpack.xml" />
+		<String value="FourByFour.belos.ml.xml" />
+	</Validator>
+	<Validator type="StringValidator" validatorId="8">
+		<String value="MixedOrderPhysicsBasedPreconditioner.Base.xml" />
+		<String value="MixedOrderPhysicsBasedPreconditioner.P2SolveOutput.xml" />
+		<String value="MixedOrderPhysicsBasedPreconditioner.Belos.xml" />
+	</Validator>
+	<Validator type="StringValidator" validatorId="9">
+		<String value="CurlLSFEMin.xml" />
+		<String value="Ninja.xml" />
+		<String value="CurlLSFEMblock_in_block.xml" />
+	</Validator>
+	<Validator type="StringValidator" validatorId="10">
+		<String value="DivLSFEMin.xml" />
+	</Validator>
+</Validators>
+<!--Finally Dependencies between parameters can be declared. these range from visual dependencies (the only type appearing here) to various mathematical dependencies based on the interaction of the varibles. There are also validator dependencies that will decide which validator to use when restricting input-->
+<!--ie. if three parameters were height, width and area of a rectangle they could be made dependent to ensure the object remains a real rectangle-->
+<Dependencies>
+	<!--Visual Dependencies determine when a parameter can be seen. StringVisualDependency checks the string value of the dependee parameter against the given strings and acts accordingly on the dependent parameters. the dependency will show if the expression (dependeeValue == validStringValue) resolves to the showIf value. default 'showIf' is true-->
+	<Dependency showIf="false" type="StringVisualDependency">
+		<!--dependee is the parameter that is checked-->
+		<Dependee parameterId="1" />
+		<!--dependent is the parameter that will be affected-->
+		<Dependent parameterId="2" />
+		<StringValues>
+			<!--relevent strings are again listed within-->
+			<String value="all" />
+		</StringValues>			
+	</Dependency>
+	<!--StringValidatorDependency can be used to apply several validators to a single parameter. It is similar to the visual dependency in how it is regulated however with the validator dependency certain values in the dependee are matched to a specific validator-->
+	<Dependency type="StringValidatorDependency">
+		<Dependee parameterId="1" />
+		<Dependent parameterId="2" />
+		<ValuesAndValidators>
+			<!--Values are for the dependee parameter. This determines which validator to use on the dependent parameter in the occurrance of a specific value-->
+			<Pair value="advanced" validatorId="2" />
+			<Pair value="beginner" validatorId="3" />
+			<Pair value="custom" validatorId="4" />
+		</ValuesAndValidators>
+	</Dependency>
+	<Dependency type="StringVisualDependency">
+		<Dependee parameterId="1" />
+		<Dependent parameterId="10" />
+		<StringValues>
+			<String value="advanced" />
+		</StringValues>			
+	</Dependency>
+	<Dependency type="StringVisualDependency">
+		<Dependee parameterId="2" />
+		<!--there can be multiple dependent parameters but only one dependee per dependency-->
+		<Dependent parameterId="4" />
+		<Dependent parameterId="5" />
+		<Dependent parameterId="6" />
+		<Dependent parameterId="7" />
+		<Dependent parameterId="8" />
+		<StringValues>
+			<String value="Epetra_Basic_Perf" />
+		</StringValues>			
+	</Dependency>
+	<Dependency showIf="false" type="StringVisualDependency">
+		<Dependee parameterId="1" />
+		<Dependent parameterId="3" />
+		<StringValues>
+			<String value="advanced" />
+		</StringValues>			
+	</Dependency>
+	<Dependency type="StringVisualDependency">
+		<Dependee parameterId="2" />
+		<Dependent parameterId="11" />
+		<StringValues>
+			<String value="CurlLSFEM_example" />
+			<String value="DivLSFEM_example" />
+			<String value="Stratimikos_Solver_Driver" />
+			<String value="Stratimikos_Preconditioner" />
+		</StringValues>			
+	</Dependency>
+	<Dependency type="StringValidatorDependency">
+		<Dependee parameterId="2" />
+		<Dependent parameterId="11" />
+		<ValuesAndValidators>
+			<Pair value="Stratimikos_Solver_Driver" validatorId="7" />
+			<Pair value="Stratimikos_Preconditioner" validatorId="8" />
+			<Pair value="CurlLSFEM_example" validatorId="9" />
+			<Pair value="DivLSFEM_example" validatorId="10" />
+		</ValuesAndValidators>
+	</Dependency>
+</Dependencies>
+</ParameterList>

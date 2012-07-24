@@ -1,0 +1,19 @@
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+
+#Add Trilinos information to the include and link lines
+include_directories(${Trilinos_INCLUDE_DIRS} ${Trilinos_TPL_INCLUDE_DIRS} )
+link_directories(${Trilinos_LIBRARY_DIRS} ${Trilinos_TPL_LIBRARY_DIRS} )
+# /Library/Frameworks/QtCore.framework /Library/Frameworks/QtGui.framework)
+
+#set trilinos libraries to link (LINK_LIBRARIES)
+set(LINK_LIBRARIES ${Epetra_LIBRARIES} ${Galeri_LIBRARIES} ${Teuchos_LIBRARIES} ${Ifpack_LIBRARIES} ${Belos_LIBRARIES} ${Tpetra_LIBRARIES} ${Epetraext_LIBRARIES})
+
+#add executable + test
+add_executable(Epetraext_MatrixMatrix cxx_main.cpp)
+target_link_libraries(Epetraext_MatrixMatrix  ${LINK_LIBRARIES})
+add_test(Epetraext_MatrixMatrix ${EXECUTABLE_OUTPUT_PATH}/Epetraext_MatrixMatrix -v)
+add_test(Epetraext_MatrixMatrix_mpi mpiexec Epetraext_MatrixMatrix -v)
+
+INCLUDE(Dart)
+INCLUDE(CPack)
+

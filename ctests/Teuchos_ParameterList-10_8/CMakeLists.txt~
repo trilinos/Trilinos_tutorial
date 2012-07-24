@@ -1,0 +1,58 @@
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+
+#Add Trilinos information to the include and link lines
+include_directories(${Trilinos_INCLUDE_DIRS} ${Trilinos_TPL_INCLUDE_DIRS} )
+link_directories(${Trilinos_LIBRARY_DIRS} ${Trilinos_TPL_LIBRARY_DIRS} )
+# /Library/Frameworks/QtCore.framework /Library/Frameworks/QtGui.framework)
+
+add_library(teuchos_xml_pl_test_helpers Teuchos_XMLParameterListTestHelpers.cpp Teuchos_XMLParameterListTestHelpers.hpp)
+
+
+#set trilinos libraries to link (LINK_LIBRARIES)
+set(LINK_LIBRARIES teuchos_xml_pl_test_helpers ${Teuchos_LIBRARIES})
+#)
+
+
+
+#////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/BadRootElement.xml ${CMAKE_CURRENT_BINARY_DIR}/BadRootElement.xml COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/BadParameterListElement.xml ${CMAKE_CURRENT_BINARY_DIR}/BadParameterListElement.xml COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/NoNameAttribute.xml ${CMAKE_CURRENT_BINARY_DIR}/NoNameAttribute.xml COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/NoTypeAttribute.xml ${CMAKE_CURRENT_BINARY_DIR}/NoTypeAttribute.xml COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/NoValueAttribute.xml ${CMAKE_CURRENT_BINARY_DIR}/NoValueAttribute.xml COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/CantFindParameterEntryConverter.xml ${CMAKE_CURRENT_BINARY_DIR}/CantFindParameterEntryConverter.xml COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/DuplicateParameterIDs.xml ${CMAKE_CURRENT_BINARY_DIR}/DuplicateParameterIDs.xml COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/_input.xml ${CMAKE_CURRENT_BINARY_DIR}/input.xml COPYONLY)
+
+add_executable(Tec8_PL_maintest cxx_main.cpp)
+target_link_libraries(Tec8_PL_maintest  ${LINK_LIBRARIES})
+add_test(Tec8_PL_maintest ${EXECUTABLE_OUTPUT_PATH}/Tec8_PL_maintest --verbose)
+add_test(Tec8_PL_maintest_mpi mpiexec Tec8_PL_maintest --verbose)
+
+
+add_executable(Tec8_PL_unitTest ParameterList_UnitTest.cpp Teuchos_StandardUnitTestMain.cpp)
+target_link_libraries(Tec8_PL_unitTest  ${LINK_LIBRARIES})
+add_test(Tec8_PL_unitTest ${EXECUTABLE_OUTPUT_PATH}/Tec8_PL_unitTest )
+add_test(Tec8_PL_unitTest_mpi mpiexec Tec8_PL_unitTest )
+
+
+add_executable(Tec8_PEntry_unitTest ParameterEntry_UnitTest.cpp Teuchos_StandardUnitTestMain.cpp)
+target_link_libraries(Tec8_PEntry_unitTest  ${LINK_LIBRARIES})
+add_test(Tec8_PEntry_unitTest ${EXECUTABLE_OUTPUT_PATH}/Tec8_PEntry_unitTest )
+add_test(Tec8_PEntry_unitTest_mpi mpiexec Tec8_PEntry_unitTest )
+
+
+add_executable(Tec8_PL_serialTest ParameterList_SerializationTest.cpp Teuchos_StandardUnitTestMain.cpp)
+target_link_libraries(Tec8_PL_serialTest  ${LINK_LIBRARIES})
+add_test(Tec8_PL_serialTest ${EXECUTABLE_OUTPUT_PATH}/Tec8_PL_serialTest )
+add_test(Tec8_PL_serialTest_mpi mpiexec Tec8_PL_serialTest )
+
+
+add_executable(Tec8_PL_unitTest_par ParameterList_UnitTest_Parallel.cpp Teuchos_StandardUnitTestMain.cpp)
+target_link_libraries(Tec8_PL_unitTest_par  ${LINK_LIBRARIES})
+add_test(Tec8_PL_unitTest_par ${EXECUTABLE_OUTPUT_PATH}/Tec8_PL_unitTest_par )
+add_test(Tec8_PL_unitTest_par_mpi mpiexec Tec8_PL_unitTest_par )
+
+INCLUDE(Dart)
+INCLUDE(CPack)

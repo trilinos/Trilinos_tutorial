@@ -1,0 +1,371 @@
+<ParameterList name="Example Run Parameters">
+<!--general params-->
+	<!--Parameter id="102" name="bool test" value="true" type="bool"/-->
+	<Parameter id="1" name="Example Suite" value="beginner" type="string"
+		docString="Indicates which set of examples to execute" validatorId="1" />
+	<Parameter id="2" name="Beginner Example" value="Epetra_Simple_Vector" type="string"
+		docString="Indicates which example to execute" validatorId="2" />
+	<Parameter id="3" name="Advanced Example" value="Epetra_Basic_Perf" type="string"
+		docString="Indicates which example to execute" validatorId="3" />
+	<Parameter id="0" name="Number of threads" value="1" type="int"
+		docString="Indicates how many threads to use" validatorId="0" />
+	<ParameterList id="101" name="Advanced Example Parameters">
+		<Parameter id="4" name="Report Type" value="verbose" type="string"
+			docString="Indicates the type of output from the program" validatorId="4" />
+	<!--Epetra_Basic_Perf Params-->
+		<Parameter id="15" name="numNodesX" value="5" type="int"
+			docString="Number of local nodes in X direction" validatorId="0" />
+		<Parameter id="16" name="numNodesY" value="5" type="int"
+			docString="Number of local nodes in Y direction" validatorId="0" />
+		<Parameter id="17" name="numProcsX" value="1" type="int"
+			docString="Number of processors in X direction" validatorId="0" />
+		<Parameter id="18" name="numProcsY" value="1" type="int"
+			docString="Number of processors in Y direction" validatorId="0" />
+		<Parameter id="19" name="numPoints" value="25" type="string"
+			docString="Number of Points in stencil" validatorId="12" />	
+	<!--Intrepid Example params-->
+		<Parameter id="5" name="Curl Input File" value="CurlLSFEMin.xml" type="string"
+			docString="the name of the input xml file" validatorId="5" />
+		<Parameter id="6" name="Div Input File" value="DivLSFEMin.xml" type="string"
+			docString="the name of the input xml file" validatorId="6" />
+	<!--solver driver params-->
+<!--		<Parameter id="7" name="Solver Input File" value="FourByFour.xml" type="string"
+			docString="the name of the input xml file" validatorId="7" />
+		<Parameter id="8" name="Solver extra File" value="none" type="string"
+			docString="the name of the input xml file" validatorId="7" />
+-->
+		<ParameterList id ="201" name="SD Parameters">
+			<Parameter id= "202" name="Matrix File" type="string" value="FourByFour.mtx"/>
+			<Parameter id= "203" name="Solve Adjoint" type="bool" value="false"/>
+			<ParameterList id= "204" name="Linear Solver Builder">
+				<Parameter id= "205" name="Linear Solver Type" type="string" value="AztecOO" validatorId="20" />	
+				<Parameter id= "206" name="Preconditioner Type" type="string" value="Ifpack" validatorId="21" />	
+				<ParameterList id= "207" name="Linear Solver Types">
+					<ParameterList id= "210" name="Amesos">
+						<ParameterList id= "211" name="Amesos Settings">
+							<Parameter id= "212" name="Solver Type" type="string" value="Klu" validatorId="22" />
+						</ParameterList>
+					</ParameterList>
+					<ParameterList id= "220" name="AztecOO">
+						<ParameterList id= "221" name="Forward Solve">
+							<Parameter id= "222" name="Max Iterations" type="int" value="1" validatorId="0" />
+							<Parameter id= "223" name="Tolerance" type="double" value="1e-06" validatorId="10" />
+							<ParameterList id= "224" name="AztecOO Settings">							
+								<Parameter id= "225" name="Aztec Preconditioner" type="string" value="ilu" validatorId="23" />
+								<Parameter id= "226" name="Aztec Solver" type="string" value="GMRES" validatorId="24" />
+							</ParameterList>
+						</ParameterList>
+						<ParameterList id= "231" name="Adjoint Solve">
+							<Parameter id= "232" name="Max Iterations" type="int" value="1" validatorId="0" />
+							<Parameter id= "233" name="Tolerance" type="double" value="1e-06" validatorId="0" />
+							<ParameterList id= "234" name="AztecOO Settings">							
+								<Parameter id= "235" name="Aztec Preconditioner" type="string" value="ilu" validatorId="23" />
+								<Parameter id= "236" name="Aztec Solver" type="string" value="GMRES" validatorId="24" />
+							</ParameterList>
+						</ParameterList>
+					</ParameterList>
+					<ParameterList id= "240" name="Belos">
+						<Parameter id= "241" name="Solver Type" type="string" value="Block CG" validatorId="25" />
+					</ParameterList>
+				</ParameterList>
+			</ParameterList>
+			<ParameterList name="LinearOpWithSolveTester">
+				<Parameter name="Show All Tests" type="bool" value="1"/>
+			</ParameterList>
+		</ParameterList>
+	<!--preconditioner params-->
+		<Parameter id="9" name="Preconditioner Input File" value="MixedOrderPhysicsBasedPreconditioner.Base.xml" type="string"
+			docString="the name of the input xml file" validatorId="8" />
+		<Parameter id="10" name="Preconditioner extra File" value="none" type="string"
+			docString="the name of the input xml file" validatorId="8" />
+		<Parameter id="11" name="Preconditioner" value="P1" type="string"
+			docString="the preconditioner to use" validatorId="9" />
+		<Parameter id="12" name="Invert P1" value="no" type="string"
+			docString="the invert the physics preconditioner" validatorId="11" />
+		<Parameter id="13" name="Show Parameters" value="no" type="string"
+			docString="Option to show the parameters" validatorId="11" />
+		<Parameter id="14" name="Tolerance" value="none" type="double"
+		docString="error tolerance for acceptable solution" validatorId="10" />
+	</ParameterList>
+<!---->
+<Validators>
+	<Validator type="EnhancedNumberValidator(int)" min="1" validatorId="0" />
+	<Validator type="StringValidator" validatorId="1">
+		<String value="beginner" />
+		<String value="advanced" />
+		<String value="custom" />
+	</Validator>
+	<Validator type="StringValidator" validatorId="3">
+		<String value="Epetra_Basic_Perf" />
+		<String value="CurlLSFEM_example" />
+		<String value="DivLSFEM_example" />
+		<String value="Stratimikos_Solver_Driver" />
+		<String value="Stratimikos_Preconditioner" />
+	</Validator>
+	<Validator type="StringValidator" validatorId="2">
+		<String value="Anasazi_Block_Davidson" />
+		<String value="Anasazi_Block_KrylovSchur" />
+		<String value="Anasazi_LOBPCG" />
+		<String value="Epetra_Power_Method" />
+		<String value="Epetra_Simple_Vector" />
+		<String value="Galeri_Linear_System" />
+		<String value="Ifpack_Preconditioner_Factory" />
+		<String value="Linear_Solver_Belos" />
+		<String value="Linear_Solver_Ifpack" />
+		<String value="Linear_Solver_ml" />
+		<String value="Linear_Solver_mlMultiGrid" />
+		<String value="NOX_Newton1" />
+		<String value="NOX_Newton2" />
+		<String value="Teuchos_Blas" />
+		<String value="Teuchos_CLP" />
+		<String value="Teuchos_LAPACK" />
+		<String value="Teuchos_PL" />
+		<String value="Teuchos_RCP" />
+		<String value="Teuchos_SDM" />
+		<String value="Teuchos_Time" />
+		<String value="Tpetra_Init" />
+		<String value="Tpetra_Vector" />
+	</Validator>
+	<Validator type="StringValidator" validatorId="4">
+		<String value="none" />
+		<String value="verbose" />
+		<String value="summary" />
+	</Validator>
+	<Validator type="StringValidator" validatorId="12">
+		<String value="5" />
+		<String value="9" />
+		<String value="25" />
+	</Validator>
+	<Validator type="StringValidator" validatorId="7">
+		<String value="FourByFour.xml" />
+		<String value="FourByFour.amesos.xml" />
+		<String value="FourByFour.aztecoo.np.xml" />
+		<String value="FourByFour.aztecoo.ifpack.xml" />
+		<String value="FourByFour.aztecoo.ifpack.adjoint.xml" />
+		<String value="FourByFour.aztecoo.ml.xml" />
+		<String value="FourByFour.belos.np.xml" />
+		<String value="FourByFour.belos.ifpack.xml" />
+		<String value="FourByFour.belos.ml.xml" />
+		<String value="none" />
+	</Validator>
+	<Validator type="StringValidator" validatorId="8">
+		<String value="MixedOrderPhysicsBasedPreconditioner.Base.xml" />
+		<String value="MixedOrderPhysicsBasedPreconditioner.P2SolveOutput.xml" />
+		<String value="MixedOrderPhysicsBasedPreconditioner.Belos.xml" />
+		<String value="none" />
+	</Validator>
+	<Validator type="StringValidator" validatorId="9">
+		<String value="P1" />
+		<String value="algebraic" />
+	</Validator>
+	<Validator type="EnhancedNumberValidator(double)" min="0" max="100000" precision="3" validatorId="10" />
+	<Validator type="StringValidator" validatorId="5">
+		<String value="CurlLSFEMin.xml" />
+		<String value="Ninja.xml" />
+		<String value="CurlLSFEMblock_in_block.xml" />
+	</Validator>
+	<Validator type="StringValidator" validatorId="6">
+		<String value="DivLSFEMin.xml" />
+	</Validator>
+	<Validator type="StringValidator" validatorId="11">
+		<String value="yes" />
+		<String value="no" />
+	</Validator>
+	<Validator type="StringValidator" validatorId="20">
+		<String value="Belos" />
+		<String value="Amesos" />
+		<String value="AztecOO" />
+	</Validator>
+	<Validator type="StringValidator" validatorId="21">
+		<String value="None" />
+		<String value="Ifpack" />
+		<String value="ML" />
+	</Validator>
+	<Validator type="StringValidator" validatorId="22">
+		<String value="klu" />
+	</Validator>
+	<Validator type="StringValidator" validatorId="23">
+		<String value="none" />
+		<String value="ilu" />
+		<String value="ilut" />
+		<String value="Jacobi" />
+		<String value="Symmetric Gauss-Seidel" />
+		<String value="Polynomial" />
+		<String value="Least-squares Polynomial" />
+	</Validator>
+	<Validator type="StringValidator" validatorId="24">
+		<String value="CG" />
+		<String value="GMRES" />
+		<String value="CGS" />
+		<String value="TFQMR" />
+		<String value="BiCGStab" />
+		<String value="LU" />
+		<String value="GMRESR" />
+	</Validator>
+	<Validator type="StringValidator" validatorId="25">
+		<String value="Block GMRES" />
+		<String value="Pseudo Block GMRESCGS" />
+		<String value="Block CG" />
+		<String value="Pseudo Block CG" />
+		<String value="GCRODR" />
+		<String value="RCG" />
+		<String value="MINRES" />
+	</Validator>
+</Validators>
+<!---->
+<Dependencies>
+	<Dependency type="StringVisualDependency">
+		<Dependee parameterId="1" />
+		<Dependent parameterId="2" />
+		<Dependent parameterId="0" />
+		<StringValues>
+			<String value="beginner" />
+		</StringValues>			
+	</Dependency>
+<!--show advanced pl-->
+	<Dependency type="StringVisualDependency">
+		<Dependee parameterId="1" />
+		<Dependent parameterId="3" />
+		<Dependent parameterId="101" />
+		<StringValues>
+			<String value="advanced" />
+		</StringValues>			
+	</Dependency>
+	<Dependency type="StringVisualDependency">
+		<Dependee parameterId="3" />
+		<Dependent parameterId="5" />
+		<StringValues>
+			<String value="CurlLSFEM_example" />
+		</StringValues>			
+	</Dependency>
+	<Dependency type="StringVisualDependency">
+		<Dependee parameterId="3" />
+		<Dependent parameterId="6" />
+		<StringValues>
+			<String value="DivLSFEM_example" />
+		</StringValues>			
+	</Dependency>
+<!--epetra params-->
+	<Dependency type="StringVisualDependency">
+		<Dependee parameterId="3" />
+		<Dependent parameterId="15" />
+		<Dependent parameterId="16" />
+		<Dependent parameterId="17" />
+		<Dependent parameterId="18" />
+		<Dependent parameterId="19" />
+		<StringValues>
+			<String value="Epetra_Basic_Perf" />
+		</StringValues>			
+	</Dependency>
+<!--sd params-->
+	<Dependency type="StringVisualDependency">
+		<Dependee parameterId="3" />
+<!--		<Dependent parameterId="7" />
+		<Dependent parameterId="8" />
+-->
+		<Dependent parameterId="201" />
+		<StringValues>
+			<String value="Stratimikos_Solver_Driver" />
+		</StringValues>			
+	</Dependency>
+	<Dependency type="StringVisualDependency">
+		<Dependee parameterId="205" />
+		<Dependent parameterId="210" />
+		<StringValues>
+			<String value="Amesos" />
+		</StringValues>			
+	</Dependency>
+	<Dependency type="StringVisualDependency">
+		<Dependee parameterId="205" />
+		<Dependent parameterId="220" />
+		<Dependent parameterId="203" />
+		<StringValues>
+			<String value="AztecOO" />
+		</StringValues>			
+	</Dependency>
+	<Dependency type="StringVisualDependency">
+		<Dependee parameterId="205" />
+		<Dependent parameterId="240" />
+		<StringValues>
+			<String value="Belos" />
+		</StringValues>			
+	</Dependency>
+	<!--Dependency type="BoolVisualDependency">
+		<Dependee parameterId="203" />
+		<Dependent parameterId="221" />
+		<StringValues>
+			<String value="no" />
+		</StringValues>			
+	</Dependency-->
+	<Dependency type="BoolVisualDependency">
+		<Dependee parameterId="203" />
+		<Dependent parameterId="231" />
+	</Dependency>
+	
+<!--precoditioner params-->
+	<Dependency type="StringVisualDependency">
+		<Dependee parameterId="3" />
+		<Dependent parameterId="9" />
+		<Dependent parameterId="10" />
+		<Dependent parameterId="11" />
+		<Dependent parameterId="12" />
+		<Dependent parameterId="13" />
+		<Dependent parameterId="14" />
+		<StringValues>
+			<String value="Stratimikos_Preconditioner" />
+		</StringValues>			
+	</Dependency>
+</Dependencies>
+</ParameterList>
+<!--
+Parameter Decode map:
+numprocs	-	0
+suite		-	1
+bexe		-	2
+aexe		-	3
+out		-	4
+cin		-	5
+din		-	6
+	solver
+sin		-	7
+sin2		-	8
+	preconditioner
+pin		-	9
+pin2		-	10
+prec		-	11
+pip		-	12
+psp		-	13
+tol		-	14
+	epetra
+nnx		-	15
+nny		-	16
+npx		-	17
+npy		-	18
+npts		-	19
+
+apl		-	101
+-->
+<!--
+Validator Decode map:
+intval		-	0
+suiteval	-	1
+bexeval		-	2
+aexeval		-	3
+outval		-	4
+cinval		-	5
+dinval		-	6
+sinval		-	7
+pinval		-	8
+precval		-	9
+tolval		-	10
+boolval		-	11
+nptsval		-	12
+.. SSD validators
+solver		-	20
+preconditioner	-	21
+klu		-	22
+ilu		-	23
+aztec solver	-	24
+belos solver	-	25
+-->
+

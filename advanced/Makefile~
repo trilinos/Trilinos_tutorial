@@ -1,0 +1,4 @@
+subsystem:
+	$(MAKE) -C Epetra_Basic_Perf
+	$(MAKE) -C Stratimikos_Solver_Driver
+	$(MAKE) -C Stratimikos_Preconditioner

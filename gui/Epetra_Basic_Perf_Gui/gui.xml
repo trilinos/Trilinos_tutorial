@@ -1,0 +1,23 @@
+<ParameterList name="Example Run Parameters">
+	<Parameter id="1" name="numNodesX" value="5" type="int"
+		docString="Number of local nodes in X direction" validatorId="1" />
+	<Parameter id="2" name="numNodesY" value="5" type="int"
+		docString="Number of local nodes in Y direction" validatorId="1" />
+	<Parameter id="3" name="numProcsX" value="1" type="int"
+		docString="Number of processors in X direction" validatorId="1" />
+	<Parameter id="4" name="numProcsY" value="1" type="int"
+		docString="Number of processors in Y direction" validatorId="1" />
+	<Parameter id="5" name="numPoints" value="25" type="int"
+		docString="Number of Points in stencil" validatorId="1" />
+	<Parameter id="6" name="Report Type" value="none" type="string"
+		docString="Indicates the type of output from the program" validatorId="0" />
+<Validators>
+	<Validator type="StringValidator" validatorId="0">
+		<String value="none" />
+		<String value="verbose" />
+		<String value="summary" />
+	</Validator>
+	<Validator type="EnhancedNumberValidator(int)" min="1" validatorId="1" />
+</Validators>
+</ParameterList>
+

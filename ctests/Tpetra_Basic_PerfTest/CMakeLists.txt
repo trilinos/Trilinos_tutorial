@@ -1,0 +1,25 @@
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+
+#Add Trilinos information to the include and link lines
+include_directories(${Trilinos_INCLUDE_DIRS} ${Trilinos_TPL_INCLUDE_DIRS} )
+link_directories(${Trilinos_LIBRARY_DIRS} ${Trilinos_TPL_LIBRARY_DIRS} )
+# /Library/Frameworks/QtCore.framework /Library/Frameworks/QtGui.framework)
+
+#add_library(methodHelp UnitTestMissingExplicitInstantiations.cpp)
+
+#set trilinos libraries to link (LINK_LIBRARIES)
+set(LINK_LIBRARIES #methodHelp 
+${Teuchos_LIBRARIES} ${Tpetra_LIBRARIES})
+#./epetra_test_err.h)
+
+add_executable(Tpetra_Basic_Perf_v8 Tpetra_Basic_Perf-10_8_5.cpp Teuchos_StandardUnitTestMain.cpp)
+target_link_libraries(Tpetra_Basic_Perf_v8  ${LINK_LIBRARIES})
+add_test(Tpetra_Basic_Perf_v8 ${EXECUTABLE_OUTPUT_PATH}/Tpetra_Basic_Perf_v8 16 12 1 1 25 -v)
+
+#add_executable(Tpetra_Basic_Perf_v10 Tpetra_Basic_Perf-10_10_2.cpp Teuchos_StandardUnitTestMain.cpp)
+#target_link_libraries(Tpetra_Basic_Perf_v10  ${LINK_LIBRARIES})
+#add_test(Tpetra_Basic_Perf_v10 ${EXECUTABLE_OUTPUT_PATH}/Tpetra_Basic_Perf_v10 16 12 1 1 25 -v)
+
+INCLUDE(Dart)
+INCLUDE(CPack)
+

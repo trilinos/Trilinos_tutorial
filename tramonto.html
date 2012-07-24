@@ -1,0 +1,19 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Tramonto Build READ_ME</title>
+	</head>
+	<body bgcolor="FFFFD5">
+		<div id="top" style="float:left;clear:right;"><img src="Tramonto.jpg" alt="Tramonto Logo" width=51%></div>
+		<div id="content" style="clear:left"><center><Table cellpadding=6><td>
+		<h4>Building Tramonto</h4>
+		<p>Installing Tramonto is almost too easy. In order to install Tramonto on this virtual machine you must first download the source code from the Tramonto <a href="https://software.sandia.gov/tramonto/downloads/tramonto-4.0.html">web page</a>. After downloading the source code create a separate build directory. Create a cmake configure script using the examples contained in the source as a template. Within the configure script instead of using the <code>-DTRILINOS_DIR</code> flag use the <code>-DCMAKE_PREFIX_PATH</code> flag to point to the trilinos installation. In the end the contents will look similar to this:</p>
+<pre>
+cmake \
+-DCMAKE_PREFIX_PATH:PATH=/usr/local/ACTS/gnu-4.6.2/openmpi-1.5.4/trilinos-10.8.5/ \
+../Tramonto-4.0.1-Source
+</pre>
+<p>Then simply run the configure script to correctly configure everything and finally type <code>make</code> to build Tramonto. In order to run examples using Tramonto move to the desired example directory then run the example by giving the path to the executable <code>dft_exec</code> from the desired example. For more information on using Tramonto see the <a href="https://software.sandia.gov/tramonto/">Tramonto Website</a> or the READ_ME files in the source directory.</p>
+	</td></table></div>
+	</body>
+</html>
