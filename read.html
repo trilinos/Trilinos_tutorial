@@ -21,17 +21,17 @@
 		<div id="text"><center><table cellpadding= 6 bgcolor=white><td>
 			
 		<div id="main"><h3>Trilinos Examples</h3>
-		<p><b>Welcome to the trilinos tutorial tarball!</b></p>
+		<p><b>Welcome to the Trilinos tutorial tarball!</b></p>
 		<p>Contained within are various examples illustrating how to use various trilinos packages as well as how to build and compile code that uses trilinos. A simple setup script is provided to load the correct modules for working in this environment. So, before doing anything else execute the command <code>source setup.sh</code> . Along with acting as a tutorial this is also a simple framework to work with trilinos code. For more details on the different methods to build and run the trilinos code see the <a href="#builds">Using Trilinos</a> section. For information on how to easily add your own code into this environment see the <a href="#custom">Adding Code</a> section. 
 		For more information on how to use and work with the examples see the <A HREF="http://code.google.com/p/trilinos/wiki/TrilinosHandsOnTutorial">Trilinos Hands-On Tutorial</A> which contains various details about the beginner examples.</p>
-		<p>There has been a little work with another project called Tramonto. For information on how to install and use it in a similar environment see the contained <a href="tramonto.html">html document</a>.</p>
+		<p>There has been a little work with another project called Tramonto. For information on how to install and use it in a similar environment see the contained <a href="tramonto.html">tramonto.html</a> document.</p>
 		</div>
 		
 		<div id="layout"><h4>General Layout</h4>
 		<p>Within this directory there are several sub-folders. The directories <code>beginner, advanced</code>, and <code>custom</code> each contain sets of examples. Each example is contained in a unique directory containing its source code and a Makefile to compile it. </p>
 		<hr>
-		<p>The general format is:&nbsp;&nbsp;&nbsp;&nbsp;trilinos_tutorial/<em>set_of_examples/specific_example</em></p>
-		<p>For example:&nbsp;&nbsp;&nbsp;&nbsp;trilinos_tutorial/beginner/Epetra_Simple_Vector</p>
+		<p>The general format is:&nbsp;&nbsp;&nbsp;&nbsp;Trilinos_tutorial/<em>set_of_examples/specific_example</em></p>
+		<p>For example:&nbsp;&nbsp;&nbsp;&nbsp;Trilinos_tutorial/beginner/Epetra_Simple_Vector</p>
 		<p>This folder contains the files <em>"Epetra_Simple_Vector.cpp"</em> and <em>"Makefile"</em>as well as <em>"CMakeLists.txt"</em> for the CMake build.</p>
 		<hr>
 		</div>
@@ -43,7 +43,7 @@
 		</div>
 		
 		<div id="make"><h5>Using Makefiles</h5>
-		<p>This tutorial provides a Makefile framework that compiles all of the beginner examples by simply typing <code>make</code> in the home directory. This shows a simple way to compile multiple examples at once as well as how to use a hierarchical structure with makefiles.  Examples can also be individually compiled using the same command in the Example's unique directory. The Makefiles generate the executable for the example which can then be moved and run independently (assuming the correct modules are loaded). For a commented example of a makefile, see the Epetra_Simple_Vector <a href="./beginner/Epetra_Simple_Vector/Makefile"><code>Makefile</code></a>.</p>
+		<p>This tutorial provides a Makefile framework that compiles all of the examples by simply typing <code>make</code> in the home directory. This shows a simple way to compile multiple examples at once as well as how to use a hierarchical structure with makefiles.  Examples can also be individually compiled using the same command in the Example's unique directory. The Makefiles generate the executable for the example which can then be moved and run independently (assuming the correct modules are loaded). For a commented example of a makefile, see the Epetra_Simple_Vector <a href="./beginner/Epetra_Simple_Vector/Makefile"><code>Makefile</code></a>.</p>
 		</div>
 		
 		<div id="cmake"><h5>Using CMake</h5>
@@ -60,7 +60,7 @@
 		<hr>
 		<div id="custom"><h4>Inserting User Code</h4>
 		<p>Adding user code into this tutorial framework is rather straight forward. The simplest way to add user code is to replace the file My_Code.cpp with the your custom code. The aformentioned file is contained in the directory of the same name within the set of custom examples. Otherwise, whether it is using the Makefile system of the CMake system just model the addition off of the existing Makefile or CMakeLists.txt files.</p>
-		<p>For using make, copy the source code into it's own directory (for this example assume the code is called <code>myCode1.cpp</code>). To keep with the pattern (though it's not strictly necessary) we would place this code within a directory with the filepath /Trilinos_tutorial/custom/myCode1/ . Next to compile the source code easily we make a Makefile. It is easiest to copy the existing Makefile from ay of the beginner examples then replace all occurances of the example name with the name of the custom source code. In this case that would be "myCode1". The Makefile should then work with the custom code and be able to build your project. </p>
+		<p>For using make, copy the source code into it's own directory (for this example assume the code is called <code>myCode1.cpp</code>). To keep with the pattern (though it's not strictly necessary) we would place this code within a directory with the filepath /Trilinos_tutorial/custom/myCode1/ . Next to compile the source code easily we make a Makefile. It is easiest to copy the existing Makefile from any of the beginner examples then replace all occurances of the example name with the name of the custom source code. In this case that would be "myCode1". The Makefile should then work with the custom code and be able to build your project. </p>
 		<p>Using CMake is a very similar procedure as using make. The only difference is the name of the helper file. However for CMake you must also inform the larger system to build your file by editing the <code>CMakeLists.txt</code> in the parent directories to include the new example. This can be done by adding the line <code>add_subdirectory(myCode1)</code> to the parent <code>CMakeLists.txt</code> file.</p>
 		<b>Note: Due to some problem with the current VM you may have to link your code to the helper library <code>aprepro_vhelp.h</code> found in the home directory of this tutorial.</b>
 		</div>
@@ -69,8 +69,8 @@
 		<p>Here are several example files that are documented to show how the parts of various helper files work
 		<ul><li>Example <a href="beginner/Epetra_Simple_Vector/Makefile">Makefile</a></li>
 			<li>Example <a href="ctests/Teuchos_ParameterList/CMakeLists.txt">CMakeLists.txt</a></li>
-			<li>Example <a href="gui/tutorial_gui/tutorial_gui.cpp">GUI Source</a><br>
-The source code for the optika gui. Can be opened in a text editor.</li>
+			<li>Example <a href="gui/tutorial_gui/tutorial_gui.cpp.txt">GUI Source</a><br>
+The source code for the optika gui provided in this tutorial.</li>
 			<li>Example <a href="gui/tutorial_gui/gui.xml">GUI xml Document</a><br>
 The xml document for formatting the optika gui.</li></ul>
 		</p>
@@ -79,7 +79,7 @@ The xml document for formatting the optika gui.</li></ul>
 		<div id="version"><hr>
 		<p style="text-align:center"><strong>This current tarball works with trilinos version 10.10.0</strong></p>
 		<hr>
-		<p>This tarball was tested against the latest version of the ParaTools VM retrieved from the paratools site on 6/6/12</p></div>
+		<p>This tarball was tested against the latest version of the ParaTools VM retrieved from the paratools site on 7/20/12</p></div>
 
 		<div id="download"><h4>Downloads</h4>
 		<p>Here are additional links to the download pages of VirtualBox and the latest virtual machine:
