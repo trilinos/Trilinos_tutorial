@@ -1,4 +1,4 @@
-
+# This Makefile compiles both the gui and the source code
 
 # Get Trilinos as one entity
 include $(TRILINOS)/include/Makefile.export.Trilinos

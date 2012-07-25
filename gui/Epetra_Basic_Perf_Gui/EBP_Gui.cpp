@@ -1,4 +1,5 @@
 #include "Optika_GUI.hpp"
+#include "../../aprepro_vhelp.h"
 
 std::string convertInt(int number);
 

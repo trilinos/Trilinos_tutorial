@@ -66,6 +66,7 @@
 #ifdef EPETRA_HAVE_JADMATRIX
 #include "Epetra_JadMatrix.h"
 #endif
+#include "../../aprepro_vhelp.h"
 
 // prototypes
 
