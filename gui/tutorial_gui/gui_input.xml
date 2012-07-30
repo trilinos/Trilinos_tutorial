@@ -29,11 +29,8 @@
 		<Parameter id="6" name="Div Input File" value="DivLSFEMin.xml" type="string"
 			docString="the name of the input xml file" validatorId="6" />
 	<!--solver driver params-->
-<!--		<Parameter id="7" name="Solver Input File" value="FourByFour.xml" type="string"
+		<Parameter id="7" name="Solver Input File" value="FourByFour.xml" type="string"
 			docString="the name of the input xml file" validatorId="7" />
-		<Parameter id="8" name="Solver extra File" value="none" type="string"
-			docString="the name of the input xml file" validatorId="7" />
--->
 		<ParameterList id ="201" name="SD Parameters">
 			<Parameter id= "202" name="Matrix File" type="string" value="FourByFour.mtx"/>
 			<Parameter id= "203" name="Solve Adjoint" type="bool" value="false"/>
@@ -78,6 +75,162 @@
 			docString="the name of the input xml file" validatorId="8" />
 		<Parameter id="10" name="Preconditioner extra File" value="none" type="string"
 			docString="the name of the input xml file" validatorId="8" />
+		<ParameterList id="301" name="Preconditioner Parameters">
+			<ParameterList id="310" name="M11 Solver">
+				<Parameter id="311" name="Linear Solver Type" type="string" value="AztecOO" validatorId="20"/>
+				<Parameter id="312" name="Preconditioner Type" type="string" value="Ifpack" validatorId="21"/>
+				<ParameterList name="Linear Solver Types">
+					<ParameterList id="313" name="Amesos">
+						<ParameterList name="Amesos Settings">
+							<Parameter name="Solver Type" type="string" value="Klu" validatorId="22" />
+						</ParameterList>
+					</ParameterList>
+					<ParameterList id="314" name="AztecOO">
+						<Parameter name="Output Every RHS" type="bool" value="1"/>
+						<ParameterList name="Forward Solve">
+							<Parameter name="Max Iterations" type="int" value="400" validatorId="0"/>
+							<Parameter name="Tolerance" type="double" value="1e-15" validatorId="10"/>
+							<ParameterList name="AztecOO Settings">
+								<Parameter name="Aztec Preconditioner" type="string" value="none" validatorId="23"/>
+								<Parameter name="Aztec Solver" type="string" value="CG" validatorId="24" />
+								<Parameter name="Output Frequency" type="int" value="50" validatorId="0"/>
+							</ParameterList>
+						</ParameterList>
+					</ParameterList>
+					<ParameterList id="315" name="Belos">
+						<Parameter name="Solver Type" type="string" value="Block CG" validatorId="25" />
+					</ParameterList>
+				</ParameterList>
+				<ParameterList name="Preconditioner Types">
+					<ParameterList id="316" name="Ifpack">
+						<Parameter name="Overlap" type="int" value="0" validatorId="0"/>
+						<Parameter name="Prec Type" type="string" value="IC"/>
+						<ParameterList name="Ifpack Settings">
+						</ParameterList>
+						<ParameterList name="VerboseObject">
+							<Parameter name="Verbosity Level" type="string" value="medium"/>
+						</ParameterList>
+					</ParameterList>
+				</ParameterList>
+			</ParameterList>
+			
+			<ParameterList id="320" name="M22 Solver">
+				<Parameter id="321" name="Linear Solver Type" type="string" value="AztecOO" validatorId="20"/>
+				<Parameter id="322" name="Preconditioner Type" type="string" value="Ifpack" validatorId="21"/>
+				<ParameterList name="Linear Solver Types">
+					<ParameterList id="323" name="Amesos">
+						<ParameterList name="Amesos Settings">
+							<Parameter name="Solver Type" type="string" value="Klu" validatorId="22" />
+						</ParameterList>
+					</ParameterList>
+					<ParameterList id="324" name="AztecOO">
+						<Parameter name="Output Every RHS" type="bool" value="1"/>
+						<ParameterList name="Forward Solve">
+							<Parameter name="Max Iterations" type="int" value="400" validatorId="0"/>
+							<Parameter name="Tolerance" type="double" value="1e-15" validatorId="10"/>
+							<ParameterList name="AztecOO Settings">
+								<Parameter name="Aztec Preconditioner" type="string" value="none" validatorId="23"/>
+								<Parameter name="Aztec Solver" type="string" value="CG" validatorId="24"/>
+								<Parameter name="Output Frequency" type="int" value="50" validatorId="0"/>
+							</ParameterList>
+						</ParameterList>
+					</ParameterList>
+					<ParameterList id="325" name="Belos">
+						<Parameter name="Solver Type" type="string" value="Block CG" validatorId="25" />
+					</ParameterList>
+				</ParameterList>
+				<ParameterList name="Preconditioner Types">
+					<ParameterList id="326" name="Ifpack">
+						<Parameter name="Overlap" type="int" value="0" validatorId="0"/>
+						<Parameter name="Prec Type" type="string" value="IC"/>
+						<ParameterList name="Ifpack Settings">
+						</ParameterList>
+						<ParameterList name="VerboseObject">
+							<Parameter name="Verbosity Level" type="string" value="medium"/>
+						</ParameterList>
+					</ParameterList>
+				</ParameterList>
+			</ParameterList>
+
+			<ParameterList id="330" name="P1 Solver">
+				<Parameter id="331" name="Linear Solver Type" type="string" value="AztecOO" validatorId="20"/>
+				<Parameter id="332" name="Preconditioner Type" type="string" value="Ifpack" validatorId="21"/>
+				<ParameterList name="Linear Solver Types">
+					<ParameterList id="333" name="Amesos">
+						<ParameterList name="Amesos Settings">
+							<Parameter name="Solver Type" type="string" value="Klu" validatorId="22" />
+						</ParameterList>
+					</ParameterList>
+					<ParameterList id="334" name="AztecOO">
+						<Parameter name="Output Every RHS" type="bool" value="1"/>
+						<ParameterList name="Forward Solve">
+							<Parameter name="Max Iterations" type="int" value="400" validatorId="0"/>
+							<Parameter name="Tolerance" type="double" value="1e-06" validatorId="10"/>
+							<ParameterList name="AztecOO Settings">
+								<Parameter name="Aztec Preconditioner" type="string" value="none" validatorId="23"/>
+								<Parameter name="Aztec Solver" type="string" value="GMRES" validatorId="24"/>
+							</ParameterList>
+						</ParameterList>
+					</ParameterList>
+					<ParameterList id="335" name="Belos">
+						<Parameter name="Solver Type" type="string" value="Block CG" validatorId="25" />
+					</ParameterList>
+				</ParameterList>
+				<ParameterList name="Preconditioner Types">
+					<ParameterList id="336" name="Ifpack">
+						<Parameter name="Overlap" type="int" value="0" validatorId="0"/>
+						<Parameter name="Prec Type" type="string" value="ILU"/>
+						<ParameterList name="Ifpack Settings">
+							<Parameter name="fact: level-of-fill" type="int" value="3" validatorId="0"/>
+						</ParameterList>
+						<ParameterList name="VerboseObject">
+							<Parameter name="Verbosity Level" type="string" value="medium"/>
+						</ParameterList>
+					</ParameterList>
+				</ParameterList>
+			</ParameterList>
+
+			<ParameterList id="340" name="P2 Solver">
+				<Parameter id="341" name="Linear Solver Type" type="string" value="AztecOO" validatorId="20"/>
+				<Parameter id="342" name="Preconditioner Type" type="string" value="Ifpack" validatorId="21"/>
+				<ParameterList name="Linear Solver Types">
+					<ParameterList id="343" name="Amesos">
+						<ParameterList name="Amesos Settings">
+							<Parameter name="Solver Type" type="string" value="Klu" validatorId="22" />
+						</ParameterList>
+					</ParameterList>
+					<ParameterList id="344" name="AztecOO">
+						<Parameter name="Output Every RHS" type="bool" value="1"/>
+						<ParameterList name="Forward Solve">
+							<Parameter name="Max Iterations" type="int" value="400" validatorId="0"/>
+							<Parameter name="Tolerance" type="double" value="1e-06" validatorId="10"/>
+							<ParameterList name="AztecOO Settings">
+								<Parameter name="Aztec Preconditioner" type="string" value="none" validatorId="23"/>
+								<Parameter name="Aztec Solver" type="string" value="GMRES" validatorId="24"/>
+								<Parameter name="Output Frequency" type="int" value="1" validatorId="0"/>
+							</ParameterList>
+						</ParameterList>
+					</ParameterList>
+					<ParameterList id="345" name="Belos">
+						<Parameter name="Solver Type" type="string" value="Block CG" validatorId="25" />
+					</ParameterList>
+				</ParameterList>
+				<ParameterList name="Preconditioner Types">
+					<ParameterList id="346" name="Ifpack">
+						<Parameter name="Overlap" type="int" value="0" validatorId="0"/>
+						<Parameter name="Prec Type" type="string" value="ILU"/>
+						<ParameterList name="Ifpack Settings">
+							<Parameter name="fact: level-of-fill" type="int" value="3" validatorId="0"/>
+						</ParameterList>
+						<ParameterList name="VerboseObject">
+							<Parameter name="Verbosity Level" type="string" value="medium"/>
+						</ParameterList>
+					</ParameterList>
+				</ParameterList>
+			</ParameterList>
+
+		</ParameterList>
+
 		<Parameter id="11" name="Preconditioner" value="P1" type="string"
 			docString="the preconditioner to use" validatorId="9" />
 		<Parameter id="12" name="Invert P1" value="no" type="string"
@@ -146,12 +299,13 @@
 		<String value="FourByFour.belos.np.xml" />
 		<String value="FourByFour.belos.ifpack.xml" />
 		<String value="FourByFour.belos.ml.xml" />
-		<String value="none" />
+		<String value="custom" />
 	</Validator>
 	<Validator type="StringValidator" validatorId="8">
 		<String value="MixedOrderPhysicsBasedPreconditioner.Base.xml" />
 		<String value="MixedOrderPhysicsBasedPreconditioner.P2SolveOutput.xml" />
 		<String value="MixedOrderPhysicsBasedPreconditioner.Belos.xml" />
+		<String value="custom" />
 		<String value="none" />
 	</Validator>
 	<Validator type="StringValidator" validatorId="9">
@@ -260,12 +414,16 @@
 <!--sd params-->
 	<Dependency type="StringVisualDependency">
 		<Dependee parameterId="3" />
-<!--		<Dependent parameterId="7" />
-		<Dependent parameterId="8" />
--->
-		<Dependent parameterId="201" />
+		<Dependent parameterId="7" />
 		<StringValues>
 			<String value="Stratimikos_Solver_Driver" />
+		</StringValues>			
+	</Dependency>
+	<Dependency type="StringVisualDependency">
+		<Dependee parameterId="7" />
+		<Dependent parameterId="201" />
+		<StringValues>
+			<String value="custom" />
 		</StringValues>			
 	</Dependency>
 	<Dependency type="StringVisualDependency">
@@ -315,6 +473,125 @@
 			<String value="Stratimikos_Preconditioner" />
 		</StringValues>			
 	</Dependency>
+	<Dependency type="StringVisualDependency">
+		<Dependee parameterId="9" />
+		<Dependent parameterId="301" />
+		<StringValues>
+			<String value="custom" />
+		</StringValues>			
+	</Dependency>
+	<Dependency type="StringVisualDependency">
+		<Dependee parameterId="311" />
+		<Dependent parameterId="313" />
+		<StringValues>
+			<String value="Amesos" />
+		</StringValues>			
+	</Dependency>
+	<Dependency type="StringVisualDependency">
+		<Dependee parameterId="311" />
+		<Dependent parameterId="314" />
+		<StringValues>
+			<String value="AztecOO" />
+		</StringValues>			
+	</Dependency>
+	<Dependency type="StringVisualDependency">
+		<Dependee parameterId="311" />
+		<Dependent parameterId="315" />
+		<StringValues>
+			<String value="Belos" />
+		</StringValues>			
+	</Dependency>
+	<Dependency type="StringVisualDependency">
+		<Dependee parameterId="312" />
+		<Dependent parameterId="316" />
+		<StringValues>
+			<String value="Ifpack" />
+		</StringValues>			
+	</Dependency>
+	<Dependency type="StringVisualDependency">
+		<Dependee parameterId="321" />
+		<Dependent parameterId="323" />
+		<StringValues>
+			<String value="Amesos" />
+		</StringValues>			
+	</Dependency>
+	<Dependency type="StringVisualDependency">
+		<Dependee parameterId="321" />
+		<Dependent parameterId="324" />
+		<StringValues>
+			<String value="AztecOO" />
+		</StringValues>			
+	</Dependency>
+	<Dependency type="StringVisualDependency">
+		<Dependee parameterId="321" />
+		<Dependent parameterId="325" />
+		<StringValues>
+			<String value="Belos" />
+		</StringValues>			
+	</Dependency>
+	<Dependency type="StringVisualDependency">
+		<Dependee parameterId="322" />
+		<Dependent parameterId="326" />
+		<StringValues>
+			<String value="Ifpack" />
+		</StringValues>			
+	</Dependency>
+	<Dependency type="StringVisualDependency">
+		<Dependee parameterId="331" />
+		<Dependent parameterId="333" />
+		<StringValues>
+			<String value="Amesos" />
+		</StringValues>			
+	</Dependency>
+	<Dependency type="StringVisualDependency">
+		<Dependee parameterId="331" />
+		<Dependent parameterId="334" />
+		<StringValues>
+			<String value="AztecOO" />
+		</StringValues>			
+	</Dependency>
+	<Dependency type="StringVisualDependency">
+		<Dependee parameterId="331" />
+		<Dependent parameterId="335" />
+		<StringValues>
+			<String value="Belos" />
+		</StringValues>			
+	</Dependency>
+	<Dependency type="StringVisualDependency">
+		<Dependee parameterId="332" />
+		<Dependent parameterId="336" />
+		<StringValues>
+			<String value="Ifpack" />
+		</StringValues>			
+	</Dependency>
+	<Dependency type="StringVisualDependency">
+		<Dependee parameterId="341" />
+		<Dependent parameterId="343" />
+		<StringValues>
+			<String value="Amesos" />
+		</StringValues>			
+	</Dependency>
+	<Dependency type="StringVisualDependency">
+		<Dependee parameterId="341" />
+		<Dependent parameterId="344" />
+		<StringValues>
+			<String value="AztecOO" />
+		</StringValues>			
+	</Dependency>
+	<Dependency type="StringVisualDependency">
+		<Dependee parameterId="341" />
+		<Dependent parameterId="345" />
+		<StringValues>
+			<String value="Belos" />
+		</StringValues>			
+	</Dependency>
+	<Dependency type="StringVisualDependency">
+		<Dependee parameterId="342" />
+		<Dependent parameterId="346" />
+		<StringValues>
+			<String value="Ifpack" />
+		</StringValues>			
+	</Dependency>
 </Dependencies>
 </ParameterList>
 <!--
@@ -328,7 +605,6 @@ cin		-	5
 din		-	6
 	solver
 sin		-	7
-sin2		-	8
 	preconditioner
 pin		-	9
 pin2		-	10

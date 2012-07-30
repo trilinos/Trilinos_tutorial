@@ -75,21 +75,28 @@ void runExample(Teuchos::RCP<const Teuchos::ParameterList> userInput){
 				+" "+numpts+" "+report+"\"";
 		}
 		else if (example == " Stratimikos_Solver_Driver"){
-			writeParameterListToXmlFile(Teuchos::getParameter<ParameterList>(sub, "SD Parameters"), "gui_params.xml");
-			if(gui_base == "cmake")	system("mv gui_params.xml cmake_build/advanced/Stratimikos_Solver_Driver/gui_params.xml");	
-			else 			system("mv gui_params.xml advanced/Stratimikos_Solver_Driver/gui_params.xml");	
-			exeargs = exeargs+"\"--input-file=gui_params.xml\"";
+			if(Teuchos::getParameter<std::string>(sub, "Solver Input File") == "custom"){
+				writeParameterListToXmlFile(Teuchos::getParameter<ParameterList>(sub, "SD Parameters"), "gui_params.xml");
+				if(gui_base == "cmake")	system("mv gui_params.xml cmake_build/advanced/Stratimikos_Solver_Driver/gui_params.xml");	
+				else 			system("mv gui_params.xml advanced/Stratimikos_Solver_Driver/gui_params.xml");	
+				exeargs = exeargs+"\"--input-file=gui_params.xml\"";
+			} 
+			else 	exeargs = exeargs +" --input-file="+Teuchos::getParameter<std::string>(sub, "Solver Input File");
 		}
 		else if (example == " CurlLSFEM_example"){
 			exeargs = exeargs + Teuchos::getParameter<std::string>(sub, "Curl Input File");
 		}else if (example == " DivLSFEM_example"){
 			exeargs = exeargs + Teuchos::getParameter<std::string>(sub, "Div Input File");
 		}else if (example == " Stratimikos_Preconditioner"){
-			system("echo Preconditioner here");
-/**/
+			string pfile =" --params-file=";
+			if(Teuchos::getParameter<std::string>(sub, "Preconditioner Input File") == "custom"){
+				writeParameterListToXmlFile(Teuchos::getParameter<ParameterList>(sub, "Preconditioner Parameters"), "gui_params.xml");
+				if(gui_base == "cmake")	system("mv gui_params.xml cmake_build/advanced/Stratimikos_Preconditioner/gui_params.xml");	
+				else 			system("mv gui_params.xml advanced/Stratimikos_Preconditioner/gui_params.xml");	
+				pfile = pfile+"gui_params.xml";
+			} 
+			else pfile =pfile+Teuchos::getParameter<std::string>(sub, "Preconditioner Input File");
 			
-			string pfile =" --params-file="
-			+Teuchos::getParameter<std::string>(sub, "Preconditioner Input File");
 			string epfile=Teuchos::getParameter<std::string>(sub, "Preconditioner extra File");
 			if(epfile == "none") epfile = "";		
 			else epfile=" --extra-params-file="+epfile;
