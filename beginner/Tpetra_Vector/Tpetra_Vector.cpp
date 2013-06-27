@@ -136,7 +136,7 @@ exampleRoutine (const Teuchos::RCP<const Teuchos::Comm<int> >& comm,
                        Tpetra::GloballyDistributed, node));
 
   // contigMap is contiguous by construction.
-  TEST_FOR_EXCEPTION(! contigMap->isContiguous(), std::logic_error,
+  TEUCHOS_TEST_FOR_EXCEPTION(! contigMap->isContiguous(), std::logic_error,
                      "The supposedly contiguous Map isn't contiguous.");
 
   // Let's create a second Map.  It will have the same number of
@@ -166,18 +166,18 @@ exampleRoutine (const Teuchos::RCP<const Teuchos::Comm<int> >& comm,
 
   // If there's more than one MPI process in the communicator,
   // then cyclicMap is definitely NOT contiguous.
-  TEST_FOR_EXCEPTION(comm->getSize() > 1 && cyclicMap->isContiguous(),
+  TEUCHOS_TEST_FOR_EXCEPTION(comm->getSize() > 1 && cyclicMap->isContiguous(),
                      std::logic_error, 
                      "The cyclic Map claims to be contiguous.");
 
   // contigMap and cyclicMap should always be compatible.  However, if
   // the communicator contains more than 1 process, then contigMap and
   // cyclicMap are NOT the same.
-  TEST_FOR_EXCEPTION(! contigMap->isCompatible (*cyclicMap),
+  TEUCHOS_TEST_FOR_EXCEPTION(! contigMap->isCompatible (*cyclicMap),
                      std::logic_error,
                      "contigMap should be compatible with cyclicMap, "
                      "but it's not.");
-  TEST_FOR_EXCEPTION(comm->getSize() > 1 && contigMap->isSameAs (*cyclicMap),
+  TEUCHOS_TEST_FOR_EXCEPTION(comm->getSize() > 1 && contigMap->isSameAs (*cyclicMap),
                      std::logic_error,
                      "contigMap should be compatible with cyclicMap, "
                      "but it's not.");

@@ -48,7 +48,7 @@ main (int argc, char *argv[])
   // Galeri::CreateCrsMatrix() wants.
   RCP<Epetra_RowMatrix> A = 
     rcp (Galeri::CreateCrsMatrix("Laplace2D", &*Map, GaleriList));
-  TEST_FOR_EXCEPTION(A == Teuchos::null, std::runtime_error,
+  TEUCHOS_TEST_FOR_EXCEPTION(A == Teuchos::null, std::runtime_error,
                      "Galeri returned a null operator A.");
 
   // =============================================================== //
@@ -69,7 +69,7 @@ main (int argc, char *argv[])
 
   RCP<Ifpack_Preconditioner> Prec = 
     rcp (Factory.Create (PrecType, &*A, OverlapLevel));
-  TEST_FOR_EXCEPTION(Prec == Teuchos::null, std::runtime_error,
+  TEUCHOS_TEST_FOR_EXCEPTION(Prec == Teuchos::null, std::runtime_error,
                      "IFPACK failed to create a preconditioner of type \"" 
                      << PrecType << "\" with overlap level " 
                      << OverlapLevel << ".");
@@ -139,7 +139,7 @@ main (int argc, char *argv[])
   problem->setRightPrec (belosPrec);
 
   bool set = problem->setProblem();
-  TEST_FOR_EXCEPTION( ! set, 
+  TEUCHOS_TEST_FOR_EXCEPTION( ! set, 
                       std::runtime_error, 
                       "*** Belos::LinearProblem failed to set up correctly! ***");
 

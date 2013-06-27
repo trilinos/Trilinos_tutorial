@@ -26,7 +26,7 @@
 // ***********************************************************************
 // @HEADER
 
-//#include "test_single_stratimikos_solver.hpp"
+#include "test_single_stratimikos_solver.hpp"
 #include "Stratimikos_DefaultLinearSolverBuilder.hpp"
 #include "Thyra_EpetraLinearOp.hpp"
 #include "Thyra_LinearOpTester.hpp"
@@ -41,9 +41,8 @@
 #else
 #  include "Epetra_SerialComm.h"
 #endif
-namespace Thyra {
 
-bool test_single_stratimikos_solver(
+bool Thyra::test_single_stratimikos_solver(
   Teuchos::ParameterList *paramList_inout
   ,const bool dumpAll
   ,Teuchos::FancyOStream *out
@@ -61,7 +60,7 @@ bool test_single_stratimikos_solver(
 
   try {
 
-    TEST_FOR_EXCEPT(!paramList_inout);
+    TEUCHOS_TEST_FOR_EXCEPT(!paramList_inout);
 
     RCP<ParameterList>
       paramList = rcp(paramList_inout,false);
@@ -155,5 +154,3 @@ bool test_single_stratimikos_solver(
   return success;
   
 }
-
-}// namespace Thyra
