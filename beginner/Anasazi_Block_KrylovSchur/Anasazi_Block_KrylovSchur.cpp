@@ -332,7 +332,7 @@ solve (const Teuchos::RCP<Epetra_Operator>& A,
 
   // Inform the eigenvalue problem that you are finished passing it
   // information.
-  TEST_FOR_EXCEPTION( ! problem->setProblem(), 
+  TEUCHOS_TEST_FOR_EXCEPTION( ! problem->setProblem(), 
                       std::runtime_error,
                       "Failed to set the eigenvalue problem." );
 
@@ -452,10 +452,10 @@ buildSparseMatrix (const Epetra_Comm& Comm,
       info = A->InsertGlobalValues (MyGlobalRowElements[i], n, 
                                     &Values[0], &Indices[0]);
       // Make sure that the insertion succeeded.  Teuchos'
-      // TEST_FOR_EXCEPTION macro gives a nice error message if the
+      // TEUCHOS_TEST_FOR_EXCEPTION macro gives a nice error message if the
       // thrown exception isn't caught.  We'll report this on the
       // offending MPI process.
-      TEST_FOR_EXCEPTION( info != 0, std::runtime_error, "Failed to insert n=" 
+      TEUCHOS_TEST_FOR_EXCEPTION( info != 0, std::runtime_error, "Failed to insert n=" 
                           << n << " global value" << (n != 1 ? "s" : "") 
                           << " in row " << MyGlobalRowElements[i] 
                           << " of the matrix." );
@@ -465,10 +465,10 @@ buildSparseMatrix (const Epetra_Comm& Comm,
     // we have to give FillComplete the domain and range maps, which in
     // this case are the column resp. row maps.
     info = A->FillComplete (ColMap, RowMap);
-    TEST_FOR_EXCEPTION( info != 0, std::runtime_error, 
+    TEUCHOS_TEST_FOR_EXCEPTION( info != 0, std::runtime_error, 
                         "FillComplete failed with INFO = " << info << ".");
     info = A->OptimizeStorage();
-    TEST_FOR_EXCEPTION( info != 0, std::runtime_error, 
+    TEUCHOS_TEST_FOR_EXCEPTION( info != 0, std::runtime_error, 
                         "OptimizeStorage failed with INFO = " << info << ".");
   } catch (std::runtime_error& e) {
     // If multiple MPI processes are reporting errors, sometimes
@@ -491,7 +491,7 @@ buildSparseMatrix (const Epetra_Comm& Comm,
     // Test both info < 0 and info > 0.
     Comm.MinAll (&info, &minInfo, 1);
     Comm.MaxAll (&info, &maxInfo, 1);
-    TEST_FOR_EXCEPTION( minInfo != 0 || maxInfo != 0, std::runtime_error,
+    TEUCHOS_TEST_FOR_EXCEPTION( minInfo != 0 || maxInfo != 0, std::runtime_error,
                         "Filling and assembling the sparse matrix failed." );
   }
   
