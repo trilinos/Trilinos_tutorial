@@ -1,0 +1,74 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>C++ code colored by C++2HTML</title>
+<meta name="generator" content="C++2HTML by Jasper Bedaux">
+<!-- To generate your own colored code visit http://www.bedaux.net/cpp2html/ -->
+<style type="text/css">
+.comment { color: #999999; font-style: italic; }
+.pre { color: #000099; }
+.string { color: #009900; }
+.char { color: #009900; }
+.float { color: #996600; }
+.int { color: #999900; }
+.bool { color: #000000; font-weight: bold; }
+.type { color: #FF6633; }
+.flow { color: #FF0000; }
+.keyword { color: #990000; }
+.operator { color: #663300; font-weight: bold; }
+.operator { color: #663300; font-weight: bold; }
+</style>
+</head>
+<body>
+<pre><span class="pre">#include "Teuchos_LAPACK.hpp"
+#include "Teuchos_SerialDenseMatrix.hpp"
+#include "Teuchos_SerialDenseVector.hpp"
+#include "Teuchos_Version.hpp"
+
+#include "../../aprepro_vhelp.h"
+</span><span class="type">
+int</span><span class="keyword"> main</span><span class="operator">(</span><span class="type">int</span> argc<span class="operator">,</span><span class="type"> char</span><span class="operator">*</span> argv<span class="operator">[])
+{</span>
+
+  std<span class="operator">::</span>cout<span class="operator"> &lt;&lt;</span> Teuchos<span class="operator">::</span>Teuchos_Version<span class="operator">() &lt;&lt;</span> std<span class="operator">::</span>endl<span class="operator"> &lt;&lt;</span> std<span class="operator">::</span>endl<span class="operator">;</span><span class="comment">
+
+  // Creating an instance of the LAPACK class for double-precision routines looks like:
+</span>  Teuchos<span class="operator">::</span>LAPACK<span class="operator">&lt;</span><span class="type">int</span><span class="operator">,</span><span class="type"> double</span><span class="operator">&gt;</span> lapack<span class="operator">;</span><span class="comment">
+
+  // This instance provides the access to all the LAPACK routines.
+</span>
+  Teuchos<span class="operator">::</span>SerialDenseMatrix<span class="operator">&lt;</span><span class="type">int</span><span class="operator">,</span><span class="type"> double</span><span class="operator">&gt;</span> My_Matrix<span class="operator">(</span><span class="int">4</span><span class="operator">,</span><span class="int">4</span><span class="operator">);</span>
+  Teuchos<span class="operator">::</span>SerialDenseVector<span class="operator">&lt;</span><span class="type">int</span><span class="operator">,</span><span class="type"> double</span><span class="operator">&gt;</span> My_Vector<span class="operator">(</span><span class="int">4</span><span class="operator">);</span>
+
+  My_Matrix<span class="operator">.</span>random<span class="operator">();</span>
+  My_Vector<span class="operator">.</span>random<span class="operator">();</span><span class="comment">
+
+  // Print out the original linear system.
+</span>  std<span class="operator">::</span>cout<span class="operator"> &lt;&lt;</span><span class="string"> "ORIGINAL LINEAR SYSTEM:"</span><span class="operator"> &lt;&lt;</span> std<span class="operator">::</span>endl<span class="operator">;</span>
+
+  std<span class="operator">::</span>cout<span class="operator"> &lt;&lt;</span> My_Matrix<span class="operator"> &lt;&lt;</span> std<span class="operator">::</span>endl<span class="operator">;</span>
+  std<span class="operator">::</span>cout<span class="operator"> &lt;&lt;</span> My_Vector<span class="operator"> &lt;&lt;</span> std<span class="operator">::</span>endl<span class="operator">;</span><span class="comment">
+
+  // Perform an LU factorization of this matrix.
+</span><span class="type">  int</span> ipiv<span class="operator">[</span><span class="int">4</span><span class="operator">],</span> info<span class="operator">;</span><span class="type">
+  char</span> TRANS<span class="operator"> =</span><span class="char"> 'N'</span><span class="operator">;</span>
+
+  lapack<span class="operator">.</span>GETRF<span class="operator">(</span><span class="int"> 4</span><span class="operator">,</span><span class="int"> 4</span><span class="operator">,</span> My_Matrix<span class="operator">.</span>values<span class="operator">(),</span> My_Matrix<span class="operator">.</span>stride<span class="operator">(),</span> ipiv<span class="operator">, &amp;</span>info<span class="operator"> );</span><span class="comment">
+
+  // Solve the linear system.
+</span>  lapack<span class="operator">.</span>GETRS<span class="operator">(</span> TRANS<span class="operator">,</span><span class="int"> 4</span><span class="operator">,</span><span class="int"> 1</span><span class="operator">,</span> My_Matrix<span class="operator">.</span>values<span class="operator">(),</span> My_Matrix<span class="operator">.</span>stride<span class="operator">(),</span>
+
+                ipiv<span class="operator">,</span> My_Vector<span class="operator">.</span>values<span class="operator">(),</span> My_Vector<span class="operator">.</span>stride<span class="operator">(), &amp;</span>info<span class="operator"> );</span><span class="comment">
+
+  // Print out the solution.
+</span>  std<span class="operator">::</span>cout<span class="operator"> &lt;&lt;</span><span class="string"> "SOLUTION RETURNED FROM LAPACK:"</span><span class="operator"> &lt;&lt;</span> std<span class="operator">::</span>endl<span class="operator">;</span>
+
+  std<span class="operator">::</span>cout<span class="operator"> &lt;&lt;</span> My_Vector<span class="operator"> &lt;&lt;</span> std<span class="operator">::</span>endl<span class="operator">;</span><span class="flow">
+
+  return</span><span class="int"> 0</span><span class="operator">;
+}</span>
+
+</pre>
+
+
+</body></html>

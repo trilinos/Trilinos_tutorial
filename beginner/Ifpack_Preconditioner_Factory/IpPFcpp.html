@@ -1,0 +1,133 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>C++ code colored by C++2HTML</title>
+<meta name="generator" content="C++2HTML by Jasper Bedaux">
+<!-- To generate your own colored code visit http://www.bedaux.net/cpp2html/ -->
+<style type="text/css">
+.comment { color: #999999; font-style: italic; }
+.pre { color: #000099; }
+.string { color: #009900; }
+.char { color: #009900; }
+.float { color: #996600; }
+.int { color: #999900; }
+.bool { color: #000000; font-weight: bold; }
+.type { color: #FF6633; }
+.flow { color: #FF0000; }
+.keyword { color: #990000; }
+.operator { color: #663300; font-weight: bold; }
+.operator { color: #663300; font-weight: bold; }
+</style>
+</head>
+<body>
+<pre><span class="pre">
+#include "Ifpack_ConfigDefs.h"
+
+#ifdef HAVE_MPI
+#include "Epetra_MpiComm.h"
+#else
+#include "Epetra_SerialComm.h"
+#endif
+#include "Epetra_CrsMatrix.h"
+#include "Epetra_MultiVector.h"
+#include "Epetra_LinearProblem.h"
+#include "Galeri_Maps.h"
+#include "Galeri_CrsMatrices.h"
+#include "Teuchos_ParameterList.hpp"
+#include "Teuchos_RCP.hpp"
+#include "Ifpack.h"
+#include "Ifpack_AdditiveSchwarz.h"
+
+#include "../../aprepro_vhelp.h"
+</span><span class="type">
+int</span><span class="keyword"> 
+main</span><span class="operator"> (</span><span class="type">int</span> argc<span class="operator">,</span><span class="type"> char</span><span class="operator"> *</span>argv<span class="operator">[])
+{</span><span class="keyword">
+  using</span> Teuchos<span class="operator">::</span>ParameterList<span class="operator">;</span><span class="keyword">
+  using</span> Teuchos<span class="operator">::</span>RCP<span class="operator">;</span><span class="keyword">
+  using</span> Teuchos<span class="operator">::</span>rcp<span class="operator">;</span><span class="pre">
+
+#ifdef HAVE_MPI
+</span>  MPI_Init<span class="operator"> (&amp;</span>argc<span class="operator">,&amp;</span>argv<span class="operator">);</span>
+  Epetra_MpiComm Comm<span class="operator"> (</span>MPI_COMM_WORLD<span class="operator">);</span><span class="pre">
+#else
+</span>  Epetra_SerialComm Comm<span class="operator">;</span><span class="pre">
+#endif
+</span>
+  ParameterList GaleriList<span class="operator">;</span><span class="comment">
+
+  // The problem is defined on a 2D grid, global size is nx * nx.
+</span><span class="keyword">  const</span><span class="type"> int</span> nx<span class="operator"> =</span><span class="int"> 30</span><span class="operator">;</span> 
+  GaleriList<span class="operator">.</span>set<span class="operator">(</span><span class="string">"n"</span><span class="operator">,</span> nx<span class="operator"> *</span> nx<span class="operator">);</span>
+  GaleriList<span class="operator">.</span>set<span class="operator">(</span><span class="string">"nx"</span><span class="operator">,</span> nx<span class="operator">);</span>
+  GaleriList<span class="operator">.</span>set<span class="operator">(</span><span class="string">"ny"</span><span class="operator">,</span> nx<span class="operator">);</span>
+  RCP<span class="operator">&lt;</span>Epetra_Map<span class="operator">&gt;</span> Map<span class="operator"> =</span> rcp<span class="operator"> (</span>Galeri<span class="operator">::</span>CreateMap<span class="operator"> (</span><span class="string">"Linear"</span><span class="operator">,</span> Comm<span class="operator">,</span> GaleriList<span class="operator">));</span><span class="comment">
+  // The "&amp;*Map" expression turns the RCP&lt;Epetra_Map&gt; into an
+  // Epetra_Map* (a raw pointer), since that's what Galeri expects).
+</span>  RCP<span class="operator">&lt;</span>Epetra_RowMatrix<span class="operator">&gt;</span> A<span class="operator"> =</span> 
+    rcp<span class="operator"> (</span>Galeri<span class="operator">::</span>CreateCrsMatrix<span class="operator"> (</span><span class="string">"Laplace2D"</span><span class="operator">, &amp;*</span>Map<span class="operator">,</span> GaleriList<span class="operator">));</span><span class="comment">
+
+  // =============================================================== //
+  // B E G I N N I N G   O F   I F P A C K   C O N S T R U C T I O N //
+  // =============================================================== //
+
+  // Allocate an IFPACK factory.  No data is associated with this
+  // object.  It only exposes the Create() method.
+</span>  Ifpack Factory<span class="operator">;</span><span class="comment">
+
+  //
+  // Create the preconditioner using the Factory.  Please check the
+  // IFPACK documentation for valid values of PrecType.
+  //
+</span>  string PrecType<span class="operator"> =</span><span class="string"> "ILU"</span><span class="operator">;</span><span class="comment"> // Incomplete LU factorization
+</span><span class="type">  int</span> OverlapLevel<span class="operator"> =</span><span class="int"> 1</span><span class="operator">;</span><span class="comment">    // Must be &gt;= 0. Ignored if Comm.NumProc() == 1.
+</span>  RCP<span class="operator">&lt;</span>Ifpack_Preconditioner<span class="operator">&gt;</span> Prec<span class="operator"> =</span> 
+    rcp<span class="operator"> (</span>Factory<span class="operator">.</span>Create<span class="operator"> (</span>PrecType<span class="operator">, &amp;*</span>A<span class="operator">,</span> OverlapLevel<span class="operator">));</span><span class="comment">
+
+  //
+  // Set parameters for configuring the IFPACK preconditioner.
+  //
+
+  // List of parameters, to be filled in below.
+</span>  ParameterList List<span class="operator">;</span><span class="comment">
+
+  // Specify parameters for ILU: drop tolerance, and fill level.
+</span>  List<span class="operator">.</span>set<span class="operator"> (</span><span class="string">"fact: drop tolerance"</span><span class="operator">,</span><span class="float"> 1e-9</span><span class="operator">);</span>
+  List<span class="operator">.</span>set<span class="operator"> (</span><span class="string">"fact: level-of-fill"</span><span class="operator">,</span><span class="int"> 1</span><span class="operator">);</span><span class="comment">
+
+  // IFPACK's implementation of overlapping Schwarz domain
+  // decomposition offers different modes for combining overlapping
+  // values on different MPI processes:
+  // 
+  // "Add", "Zero", "Insert", "InsertAdd", "Average", "AbsMax"
+  //
+  // See Epetra_CombineMode.h for the meaning of each of these modes.
+</span>  List<span class="operator">.</span>set<span class="operator"> (</span><span class="string">"schwarz: combine mode"</span><span class="operator">,</span><span class="string"> "Add"</span><span class="operator">);</span><span class="comment">
+
+  // Set the parameters.
+</span>  IFPACK_CHK_ERR<span class="operator">(</span>Prec<span class="operator">-&gt;</span>SetParameters<span class="operator">(</span>List<span class="operator">));</span><span class="comment">
+
+  // Initialize the preconditioner. At this point the matrix must have
+  // been FillComplete()'d, but the values of its entries are ignored.
+</span>  IFPACK_CHK_ERR<span class="operator">(</span>Prec<span class="operator">-&gt;</span>Initialize<span class="operator">());</span><span class="comment">
+
+  // Build the preconditioner by examining the values in the matrix.
+</span>  IFPACK_CHK_ERR<span class="operator">(</span>Prec<span class="operator">-&gt;</span>Compute<span class="operator">());</span><span class="comment">
+
+  // =================================================== //
+  // E N D   O F   I F P A C K   C O N S T R U C T I O N //
+  // =================================================== //
+
+  // IFPACK preconditioners know how to print themselves in parallel.
+</span>  std<span class="operator">::</span>cout<span class="operator"> &lt;&lt; *</span>Prec<span class="operator">;</span><span class="pre">
+
+#ifdef HAVE_MPI
+</span>  MPI_Finalize<span class="operator">() ;</span><span class="pre"> 
+#endif
+</span><span class="flow">  return</span> EXIT_SUCCESS<span class="operator">;
+}</span>
+
+</pre>
+
+
+</body></html>

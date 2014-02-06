@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<div id="stuff" style="hight:2000px;width:700px">
+
+<h1>Trilinos Hands-On Tutorial</h1>
+
+<h2>Reference and tutorial material:</h2>
+<ol>
+  <li>The Trilinos Project relies heavily upon its <a href="http://trilinos.sandia.gov/">website</a>.</li>
+  <li>Each Trilinos package has Doxygen documentation.</li>
+  <li>A lot of information can be found on the Trilinos <a href="http://trilinos.sandia.gov/getting_started.html">"Getting Started" page.</a></li>
+  <li>Trilinos has a tutorial document that you can find on the website.</li>
+  <li>Several previous Trilinos User Group meetings included a video-recorded tutorial that uses the website.</li>
+</ol>
+
+<h2>Download and build the examples on your machine</h2>
+<ol>
+  <li>Download Trilinos</li>
+  <li>Download and install CMake (if not already done)</li>
+  <li>Make sure you have the BLAS and LAPACK installed</li>
+  <li>Build and install Trilinos</li>
+  <li>Build your program against Trilinos</li>
+</ol>
+
+<h2>Trilinos Package Examples</h2>
+<ol>
+  <li>Learn how to create and use Tpetra dense and sparse linear algebra objects.
+  <ul>
+    <li>Lesson 1: "Hello world!" Learn different ways to initialize MPI (or not) and pass an MPI communicator to Tpetra.</li>
+    <li>Lesson 2: Learn how to make a Tpetra vector, given a communicator from Lesson 1.</li>
+    <li>Lesson 3: Learn how to implement a simple numerical algorithm (the power method) using Tpetra sparse matrices and vectors.</li>
+    <li>Lesson 4: Learn different ways to construct a Tpetra sparse matrix.</li>
+    <li>Lesson 5: Learn how to migrate data in a Tpetra object between two different parallel data distributions.</li>
+  </ul></li>
+  <li>Learn how to solve linear systems using the Belos package of iterative linear solvers, and the Ifpack2 package of preconditioners
+  <ul>
+    <li><a href="">Create an Ifpack2 preconditioner</a></li>
+    <li><a href="">Solve a linear system using Belos and Ifpack2</a></li>
+  </ul></li>
+  <li>Learn how to use Epetra dense and sparse linear algebra objects.
+  <ul>
+    <li><a href="./Epetra_Simple_Vector/EpetraSV.html">Beginner: Construct some vectors and perform basic operations.</a></li>
+    <li><a href="./Epetra_Power_Method/EpetraPM.html">Intermediate: Find the dominant eigenpair of a matrix using the power method.</a></li>
+  </ul></li>
+  <li>Generate test linear systems using the Galeri package.
+  <ul>
+    <li><a href="./Galeri_Linear_System/GaleriLS.html">Generate a matrix, discretized 2D Laplacian on a Cartesian grid.</a></li>
+    <li>Try generating matrices for some different operators, the list of supported operators is <a href="http://trilinos.sandia.gov/packages/docs/dev/packages/galeri/doc/html/gl_GalleryCrsMatrix.html">here</a>.</li>
+  </ul></li>
+  <li>Create an algebraic preconditioner using the Ifpack package.
+  <ul>
+    <li><a href="./Ifpack_Preconditioner_Factory/IfpackFactory.html">Create a preconditioner using the Ifpack preconditioner factory.</a></li>
+    <li>Try generating different preconditioners, the list of supported parameters for the factory is <a href="http://trilinos.sandia.gov/packages/docs/dev/packages/ifpack/doc/html/index.html#ifp_params">here</a>.</li>
+  </ul></li>
+  <li>Solve a linear system using the Ifpack and AztecOO packages.
+  <ul>
+    <li><a href="./Linear_Solver_Ifpack/IfpackAztec.html">Solve a linear system _Ax=b_ using Ifpack and AztecOO</a></li>
+  </ul></li>
+  <li>Solve a linear system using the ML and AztecOO packages.
+  <ul>
+    <li><a href="./Linear_Solver_ml/MLAztec.html">Solve a linear system _Ax=b_ using ML(black-box) and AztecOO</a></li>
+    <li><a href="./Linear_Solver_mlMultiGrid/MLAztec2.html">Solve a linear system _Ax=b_ using ML and AztecOO, but setting some multigrid options</a></li>
+  </ul></li>
+  <li>Solve a linear system using the Ifpack and Belos packages.
+  <ul>
+    <li><a href="./Linear_Solver_Belos/IfpackBelos2.html">Solve a linear system _Ax=b_ using Ifpack and Belos</li>
+  </ul></li>
+  <li>Compute some eigenpairs using the Anasazi package.
+  <ul>
+    <li><a href="./Anasazi_Block_Davidson/AnasaziBlockDavidson.html">Compute the smallest eigenpairs of a discretized 2D Laplacian using the block Davidson solver.</a></li>
+    <li><a href="./Anasazi_LOBPCG/AnasaziLOBPCG.html">Compute the smallest eigenpairs of a discretized 2D Laplacian using the LOBPCG solver.</a></li>
+    <li><a href="./Anasazi_Block_KrylovSchur/AnasaziBlockKrylovSchurSVD.html">Compute the dominant singular values of a 2D discretization of a simple kernel using the block Krylov-Schur solver.</a></li>
+  </ul></li>
+  <li>Solve a nonlinear system using the NOX package.
+  <ul>
+    <li><a href="./NOX_Newton1/NOXNewton.html">Solve a simple nonlinear system using NOX.</a></li>
+    <li><a href="./NOX_Newton2/NOXNewton2.html">Solve a simple nonlinear system using NOX.</a></li>
+  </ul></li>
+  <li>PyTrilinos tutorial materials.
+  <ul>
+    <li><a href="http://trilinos.sandia.gov/packages/pytrilinos/PyTrilinosTutorial.pdf">PyTrilinos tutorial slides</a></li>
+    <li>Solve a simple 2D Laplace problem using PyTrilinos.</li>
+  </ul></li>
+  <li>Learn how to use utilities in the Teuchos package.
+  <ul>
+    <li><a href="./Teuchos_PL/TeuchosPL.html">Build a parameter list (used to pass parameters to all Trilinos packages).</a></li>
+    <li><a href="./Teuchos_RCP/TeuchosRCP.html">Build a reference-counted pointer (used to eliminate memory leak issues in most Trilinos packages).</a></li>
+    <li><a href="./Teuchos_CLP/TeuchosCLP.html">Build a command-line parser (tool for changing runtime behavior of program, providing documentation for options).</a></li>
+    <li><a href="./Teuchos_Time/TeuchosTime.html">Build a time monitor (tool for timing individual methods or operations in a program).</a></li>
+  </ul></li>
+</ol>
+
+
+</div>
+
+</body>
+</html>

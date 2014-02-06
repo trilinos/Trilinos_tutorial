@@ -1,0 +1,135 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>C++ code colored by C++2HTML</title>
+<meta name="generator" content="C++2HTML by Jasper Bedaux">
+<!-- To generate your own colored code visit http://www.bedaux.net/cpp2html/ -->
+<style type="text/css">
+.comment { color: #999999; font-style: italic; }
+.pre { color: #000099; }
+.string { color: #009900; }
+.char { color: #009900; }
+.float { color: #996600; }
+.int { color: #999900; }
+.bool { color: #000000; font-weight: bold; }
+.type { color: #FF6633; }
+.flow { color: #FF0000; }
+.keyword { color: #990000; }
+.operator { color: #663300; font-weight: bold; }
+.operator { color: #663300; font-weight: bold; }
+</style>
+</head>
+<body>
+<pre><span class="comment">// You can include this header file whether or not you built with MPI.
+</span><span class="pre">#include "Teuchos_GlobalMPISession.hpp"
+#include "Teuchos_oblackholestream.hpp"
+
+#include "Teuchos_TimeMonitor.hpp"
+#include "Teuchos_Version.hpp"
+
+#include "../../aprepro_vhelp.h"
+</span><span class="comment">
+//
+// Evaluate a quadratic function at x.
+//
+</span><span class="type">double</span> quadFunc<span class="operator"> (</span><span class="type">int</span> x<span class="operator">);</span><span class="comment">
+
+//
+// Compute the factorial of x.
+//
+</span><span class="type">double</span> factFunc<span class="operator"> (</span><span class="type">int</span> x<span class="operator">);</span><span class="comment">
+
+//
+// Global timers.  These will be instantiated in main(), before
+// calling quadFunc() or factFunc().  They are declared here 
+// because quadFunc() resp. factFunc() refer to them.
+//
+</span>Teuchos<span class="operator">::</span>RCP<span class="operator">&lt;</span>Teuchos<span class="operator">::</span>Time<span class="operator">&gt;</span> CompTime<span class="operator">;</span>
+Teuchos<span class="operator">::</span>RCP<span class="operator">&lt;</span>Teuchos<span class="operator">::</span>Time<span class="operator">&gt;</span> FactTime<span class="operator">;</span><span class="comment">
+
+//
+// The main() driver routine.
+//
+</span><span class="type">int</span><span class="keyword"> 
+main</span><span class="operator"> (</span><span class="type">int</span> argc<span class="operator">,</span><span class="type"> char</span><span class="operator">*</span> argv<span class="operator">[])
+{</span><span class="keyword">
+  using</span> std<span class="operator">::</span>endl<span class="operator">;</span><span class="keyword">
+  using</span> Teuchos<span class="operator">::</span>RCP<span class="operator">;</span><span class="keyword">
+  using</span> Teuchos<span class="operator">::</span>Time<span class="operator">;</span><span class="keyword">
+  using</span> Teuchos<span class="operator">::</span>TimeMonitor<span class="operator">;</span><span class="comment">
+
+  // Teuchos::GlobalMPISession's destructor automatically calls 
+  // MPI_Init() if appropriate.  Passing in NULL as the third
+  // argument is a good idea when running with a large number 
+  // of MPI processes; it silences the default behavior of 
+  // printing out a short message on each MPI process.
+</span>  Teuchos<span class="operator">::</span>GlobalMPISession mpiSession<span class="operator"> (&amp;</span>argc<span class="operator">, &amp;</span>argv<span class="operator">,</span> NULL<span class="operator">);</span><span class="keyword">
+  const</span><span class="type"> int</span> procRank<span class="operator"> =</span> Teuchos<span class="operator">::</span>GlobalMPISession<span class="operator">::</span>getRank<span class="operator">();</span><span class="comment">
+
+  // Only let MPI Proc 0 print to stdout.  The other processes
+  // processes print to a "black hole," which is like /dev/null;
+  // it doesn't display any output.
+</span>  Teuchos<span class="operator">::</span>oblackholestream blackhole<span class="operator">;</span>
+  std<span class="operator">::</span>ostream<span class="operator"> &amp;</span>out<span class="operator"> = (</span>procRank<span class="operator"> ==</span><span class="int"> 0</span><span class="operator"> ?</span> std<span class="operator">::</span>cout<span class="operator"> :</span> blackhole<span class="operator">);</span>
+
+  out<span class="operator"> &lt;&lt;</span> Teuchos<span class="operator">::</span>Teuchos_Version<span class="operator">() &lt;&lt;</span> endl<span class="operator"> &lt;&lt;</span> endl<span class="operator">;</span><span class="comment">
+
+  // Create the global timers.
+</span>  CompTime<span class="operator"> =</span> TimeMonitor<span class="operator">::</span>getNewCounter<span class="operator"> (</span><span class="string">"Computational Time"</span><span class="operator">);</span>
+  FactTime<span class="operator"> =</span> TimeMonitor<span class="operator">::</span>getNewCounter<span class="operator"> (</span><span class="string">"Factorial Time"</span><span class="operator">);</span><span class="comment">
+
+  // Apply the quadratic function.  We'll time this with CompTime.
+</span><span class="operator">  {</span><span class="type">
+    double</span> x<span class="operator">;</span><span class="flow">
+    for</span><span class="operator"> (</span><span class="type">int</span> i<span class="operator"> = -</span><span class="int">100</span><span class="operator">;</span> i<span class="operator"> &lt;</span><span class="int"> 100</span><span class="operator">; ++</span>i<span class="operator">) {</span>
+      x<span class="operator"> =</span> quadFunc<span class="operator"> (</span>i<span class="operator">);
+    }
+  }</span><span class="comment">
+
+  // Apply the factorial function.  We'll time this with FactTime.
+</span><span class="operator">  {</span><span class="type">
+    double</span> x<span class="operator">;</span><span class="flow">
+    for</span><span class="operator"> (</span><span class="type">int</span> i<span class="operator"> =</span><span class="int"> 0</span><span class="operator">;</span> i<span class="operator"> &lt;</span><span class="int"> 100</span><span class="operator">; ++</span>i<span class="operator">) {</span>
+      x<span class="operator"> =</span> factFunc<span class="operator"> (</span>i<span class="operator">);
+    }
+  }</span><span class="comment">
+
+  // Get a summary of timings over all MPI processes.
+  // Only MPI Proc 0 gets to print anything anyway, so passing in
+  // "out" is OK.
+</span>  TimeMonitor<span class="operator">::</span>summarize<span class="operator"> (</span>out<span class="operator">);</span><span class="comment">
+
+  // Teuchos::GlobalMPISession's destructor automatically calls 
+  // MPI_Finalize() if appropriate.
+</span><span class="flow">  return</span><span class="int"> 0</span><span class="operator">;
+}</span><span class="type">
+
+double</span> 
+quadFunc<span class="operator"> (</span><span class="type">int</span> x<span class="operator">)
+{</span><span class="comment">
+  // Construct a local time monitor.  
+  // This starts the CompTime timer and will stop when the scope exits.
+</span>  Teuchos<span class="operator">::</span>TimeMonitor LocalTimer<span class="operator"> (*</span>CompTime<span class="operator">);</span><span class="comment">
+
+  // Evaluate the quadratic function.
+</span><span class="flow">  return</span> x<span class="operator">*</span>x<span class="operator"> -</span><span class="float"> 1.0</span><span class="operator">;
+}</span><span class="type">
+
+double</span> 
+factFunc<span class="operator"> (</span><span class="type">int</span> x<span class="operator">)
+{</span><span class="comment">
+  // Construct a local time monitor.
+  // This starts the FactTime timer and will stop when the scope exits.
+</span>  Teuchos<span class="operator">::</span>TimeMonitor LocalTimer<span class="operator"> (*</span>FactTime<span class="operator">);</span><span class="flow">
+
+  if</span><span class="operator"> (</span>x<span class="operator"> ==</span><span class="int"> 0</span><span class="operator">)</span><span class="flow"> 
+    return</span><span class="float"> 0.0</span><span class="operator">;</span><span class="flow">
+  else if</span><span class="operator"> (</span>x<span class="operator"> ==</span><span class="int"> 1</span><span class="operator">)</span><span class="flow">
+    return</span><span class="float"> 1.0</span><span class="operator">;</span><span class="flow">
+  else</span><span class="comment"> // Compute the factorial recursively.
+</span><span class="flow">    return</span> x<span class="operator"> *</span> factFunc<span class="operator"> (</span>x<span class="operator">-</span><span class="int">1</span><span class="operator">);
+}</span>
+</pre>
+
+
+</body></html>

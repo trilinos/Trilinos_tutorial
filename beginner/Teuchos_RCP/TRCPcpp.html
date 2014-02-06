@@ -1,0 +1,107 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>C++ code colored by C++2HTML</title>
+<meta name="generator" content="C++2HTML by Jasper Bedaux">
+<!-- To generate your own colored code visit http://www.bedaux.net/cpp2html/ -->
+<style type="text/css">
+.comment { color: #999999; font-style: italic; }
+.pre { color: #000099; }
+.string { color: #009900; }
+.char { color: #009900; }
+.float { color: #996600; }
+.int { color: #999900; }
+.bool { color: #000000; font-weight: bold; }
+.type { color: #FF6633; }
+.flow { color: #FF0000; }
+.keyword { color: #990000; }
+.operator { color: #663300; font-weight: bold; }
+.operator { color: #663300; font-weight: bold; }
+</style>
+</head>
+<body>
+<pre><span class="comment">//
+// Teuchos::RCP example.
+//
+</span><span class="pre">#include "Teuchos_RCP.hpp"
+#include "Teuchos_Version.hpp"
+
+#include "../../aprepro_vhelp.h"
+</span><span class="keyword">
+class</span> A<span class="operator"> {</span><span class="keyword">
+
+ public</span><span class="operator">:</span>
+   A<span class="operator">() {}</span><span class="keyword">
+   virtual</span><span class="operator"> ~</span>A<span class="operator">(){}</span><span class="keyword">
+   virtual</span><span class="type"> void</span> f<span class="operator">(){}
+};</span><span class="keyword">
+
+class</span> B1<span class="operator"> :</span><span class="keyword"> virtual public</span> A<span class="operator"> {};</span><span class="keyword">
+class</span> B2<span class="operator"> :</span><span class="keyword"> virtual public</span> A<span class="operator"> {};</span><span class="keyword">
+
+class</span> C<span class="operator"> :</span><span class="keyword"> public</span> B1<span class="operator">,</span><span class="keyword"> public</span> B2<span class="operator"> {};</span><span class="keyword">
+
+using namespace</span> Teuchos<span class="operator">;</span><span class="type">
+
+int</span><span class="keyword"> main</span><span class="operator">(</span><span class="type">int</span> argc<span class="operator">,</span><span class="type"> char</span><span class="operator">*</span> argv<span class="operator">[])
+{</span>
+
+  std<span class="operator">::</span>cout<span class="operator"> &lt;&lt;</span> Teuchos<span class="operator">::</span>Teuchos_Version<span class="operator">() &lt;&lt;</span> std<span class="operator">::</span>endl<span class="operator"> &lt;&lt;</span> std<span class="operator">::</span>endl<span class="operator">;</span><span class="comment">
+
+  // Create some reference-counted pointers.
+  // Create a reference-counted NULL pointer of type A.
+</span>  RCP<span class="operator">&lt;</span>A<span class="operator">&gt;</span>             a_null_ptr<span class="operator">;</span><span class="comment">
+  // Create a reference-counted pointer of non-const type A.
+</span>  RCP<span class="operator">&lt;</span>A<span class="operator">&gt;</span>             a_ptr<span class="operator">   =</span> rcp<span class="operator">(</span><span class="keyword">new</span> A<span class="operator">);</span><span class="comment">
+  // Create a reference-counted pointer of const type A.
+</span>  RCP<span class="operator">&lt;</span><span class="keyword">const</span> A<span class="operator">&gt;</span>       ca_ptr<span class="operator">  =</span> rcp<span class="operator">(</span><span class="keyword">new</span> A<span class="operator">);</span><span class="comment">
+  // Create a const reference-counted pointer of non-const type A.
+</span><span class="keyword">  const</span> RCP<span class="operator">&lt;</span>A<span class="operator">&gt;</span>       a_cptr<span class="operator">  =</span> rcp<span class="operator">(</span><span class="keyword">new</span> A<span class="operator">);</span><span class="comment">
+  // Create a const reference-counted pointer of const type A.
+</span><span class="keyword">  const</span> RCP<span class="operator">&lt;</span><span class="keyword">const</span> A<span class="operator">&gt;</span> ca_cptr<span class="operator"> =</span> rcp<span class="operator">(</span><span class="keyword">new</span> A<span class="operator">);</span><span class="comment">
+  // Perform implicit conversions between a derived class and its base class.
+</span>  RCP<span class="operator">&lt;</span>B1<span class="operator">&gt;</span> b1_ptr<span class="operator">  =</span> rcp<span class="operator">(</span><span class="keyword">new</span> B1<span class="operator">);</span>
+  RCP<span class="operator">&lt;</span>A<span class="operator">&gt;</span> a_ptr1<span class="operator"> =</span> b1_ptr<span class="operator">;</span><span class="comment">
+
+  /* Other non-implicit type conversions like static, dynamic, or const casts
+     can be taken care of by non-member template functions.
+  */</span>
+  RCP<span class="operator">&lt;</span><span class="keyword">const</span> C<span class="operator">&gt;</span>  c_ptr<span class="operator">     =</span> rcp<span class="operator">(</span><span class="keyword">new</span> C<span class="operator">);</span><span class="comment">
+  // Implicit cast from C to B2.
+</span>  RCP<span class="operator">&lt;</span><span class="keyword">const</span> B2<span class="operator">&gt;</span> b2_ptr<span class="operator">    =</span> c_ptr<span class="operator">;</span><span class="comment">
+  // Safe cast, type-checked, from C to A.
+</span>  RCP<span class="operator">&lt;</span><span class="keyword">const</span> A<span class="operator">&gt;</span>  ca_ptr1<span class="operator">   =</span> rcp_dynamic_cast<span class="operator">&lt;</span><span class="keyword">const</span> A<span class="operator">&gt;(</span>c_ptr<span class="operator">);</span><span class="comment">
+  // Unsafe cast, non-type-checked, from C to A.
+</span>  RCP<span class="operator">&lt;</span><span class="keyword">const</span> A<span class="operator">&gt;</span>  ca_ptr2<span class="operator">   =</span> rcp_static_cast<span class="operator">&lt;</span><span class="keyword">const</span> A<span class="operator">&gt;(</span>c_ptr<span class="operator">);</span><span class="comment">
+  // Cast away const from B2.
+</span>  RCP<span class="operator">&lt;</span>B2<span class="operator">&gt;</span>       nc_b2_ptr<span class="operator"> =</span> rcp_const_cast<span class="operator">&lt;</span>B2<span class="operator">&gt;(</span>b2_ptr<span class="operator">);</span><span class="comment">
+
+  /* Using a reference-counted pointer is very similar to using a raw C++ pointer.  Some
+     of the operations that are common to both are:
+  */</span>
+  RCP<span class="operator">&lt;</span>A<span class="operator">&gt;</span>
+    a_ptr2<span class="operator"> =</span> rcp<span class="operator">(</span><span class="keyword">new</span> A<span class="operator">),</span><span class="comment">  // Initialize reference-counted pointers.
+</span>    a_ptr3<span class="operator"> =</span> rcp<span class="operator">(</span><span class="keyword">new</span> A<span class="operator">);</span><span class="comment">  // ""
+</span>  A<span class="operator">  *</span>ra_ptr2<span class="operator"> =</span><span class="keyword"> new</span> A<span class="operator">,</span><span class="comment">    // Initialize non-reference counted pointers.
+</span><span class="operator">    *</span>ra_ptr3<span class="operator"> =</span><span class="keyword"> new</span> A<span class="operator">;</span><span class="comment">     // ""
+</span>  a_ptr2<span class="operator"> =</span> rcp<span class="operator">(</span>ra_ptr3<span class="operator">);</span><span class="comment">  // Assign from a raw pointer (only do this once!)
+</span>  a_ptr3<span class="operator"> =</span> a_ptr1<span class="operator">;</span><span class="comment">        // Assign one smart pointer to another.
+</span>  a_ptr2<span class="operator"> =</span> rcp<span class="operator">(</span>ra_ptr2<span class="operator">);</span><span class="comment">  // Assign from a raw pointer (only do this once!)
+</span>  a_ptr2<span class="operator">-&gt;</span>f<span class="operator">();</span><span class="comment">            // Access a member of A using -&gt;
+</span>  ra_ptr2<span class="operator">-&gt;</span>f<span class="operator">();</span><span class="comment">           // ""
+</span><span class="operator">  *</span>a_ptr2<span class="operator"> = *</span>a_ptr3<span class="operator">;</span><span class="comment">      // Dereference the objects and assign.
+</span><span class="operator">  *</span>ra_ptr2<span class="operator"> = *</span>ra_ptr3<span class="operator">;</span><span class="comment">    // ""
+
+  // Get the raw C++ pointer.
+</span>  A<span class="operator">*</span> true_ptr<span class="operator"> =</span><span class="int"> 0</span><span class="operator">;</span>
+  true_ptr<span class="operator"> =</span> a_ptr1<span class="operator">.</span>get<span class="operator">();</span><span class="flow">
+
+  return</span><span class="int"> 0</span><span class="operator">;
+
+}</span>
+
+
+</pre>
+
+
+</body></html>

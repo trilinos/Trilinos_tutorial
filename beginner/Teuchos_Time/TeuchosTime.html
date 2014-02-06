@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+
+<br></div>
+
+<body>
+
+<div id="stuff" style="hight:2000px;width:750px">
+
+<h1>TeuchosTime</h1>
+<hr>
+
+
+<div id="contents" style="hight:2000px;width:700px;float:left">
+<h2>Introduction</h2>
+
+<p>Teuchos::Time implements a basic timer, using the most accurate portable timer available on your platform. (This means timer resolution may vary on different operating systems and hardware.) Teuchos::TimeMonitor's constructor takes a reference to a Time object, and (re)starts the timer. TimeMonitor's destructor stops the timer. This ensures that no matter how the scope containing TimeMonitor is exited -- normally, or via a thrown exception -- the timer will be stopped correctly. TimeMonitor is therefore a kind of "scope guard."</p>
+
+<p>TimeMonitor also has useful class methods for creating timers and summarizing results. The getNewCounter() method returns a new Time object with a given name. This is local to each MPI process. In contrast, the summarize() method is a collective. It finds a common subset of all timers (the intersection is the default) on all MPI processes that were created with getNewCounter(). For all timers in the subset, it reports the minimum, arithmetic mean, and maximum of all timers' elapsed time. This sounds expensive, but we have implemented this in a reasonably scalable way.</p>
+
+<p>You should avoid creating timers over and over again to time the same kind of operation (for example, repeated linear solves using the same solver). The TimeMonitor class has methods to help you fetch previously created timers by name, and to remove timers that are no longer needed.</p>
+
+<h2>Code Example</h2>
+
+<IFRAME src="./TTcpp.html"width=775px height=650px/>
+</div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,147 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>C++ code colored by C++2HTML</title>
+<meta name="generator" content="C++2HTML by Jasper Bedaux">
+<!-- To generate your own colored code visit http://www.bedaux.net/cpp2html/ -->
+<style type="text/css">
+.comment { color: #999999; font-style: italic; }
+.pre { color: #000099; }
+.string { color: #009900; }
+.char { color: #009900; }
+.float { color: #996600; }
+.int { color: #999900; }
+.bool { color: #000000; font-weight: bold; }
+.type { color: #FF6633; }
+.flow { color: #FF0000; }
+.keyword { color: #990000; }
+.operator { color: #663300; font-weight: bold; }
+.operator { color: #663300; font-weight: bold; }
+</style>
+</head>
+<body>
+<pre><span class="pre">#include "Ifpack_ConfigDefs.h"
+
+#ifdef HAVE_MPI
+#include "Epetra_MpiComm.h"
+#else
+#include "Epetra_SerialComm.h"
+#endif
+#include "Epetra_CrsMatrix.h"
+#include "Epetra_MultiVector.h"
+#include "Epetra_LinearProblem.h"
+#include "Galeri_Maps.h"
+#include "Galeri_CrsMatrices.h"
+#include "Teuchos_ParameterList.hpp"
+#include "Teuchos_RCP.hpp"
+#include "AztecOO.h"
+#include "Ifpack.h"
+#include "Ifpack_AdditiveSchwarz.h"
+
+#include "../../aprepro_vhelp.h"
+</span><span class="type">
+int</span><span class="keyword"> main</span><span class="operator">(</span><span class="type">int</span> argc<span class="operator">,</span><span class="type"> char</span><span class="operator"> *</span>argv<span class="operator">[])
+{</span><span class="pre">
+
+#ifdef HAVE_MPI
+</span>  MPI_Init<span class="operator">(&amp;</span>argc<span class="operator">,&amp;</span>argv<span class="operator">);</span>
+  Epetra_MpiComm Comm<span class="operator">(</span> MPI_COMM_WORLD<span class="operator"> );</span><span class="pre">
+#else
+</span>  Epetra_SerialComm Comm<span class="operator">;</span><span class="pre">
+#endif
+</span>
+  Teuchos<span class="operator">::</span>ParameterList GaleriList<span class="operator">;</span><span class="comment">
+
+  // The problem is defined on a 2D grid, global size is nx * nx.
+</span><span class="type">  int</span> nx<span class="operator"> =</span><span class="int"> 30</span><span class="operator">;</span> 
+  GaleriList<span class="operator">.</span>set<span class="operator">(</span><span class="string">"n"</span><span class="operator">,</span> nx<span class="operator"> *</span> nx<span class="operator">);</span>
+  GaleriList<span class="operator">.</span>set<span class="operator">(</span><span class="string">"nx"</span><span class="operator">,</span> nx<span class="operator">);</span>
+  GaleriList<span class="operator">.</span>set<span class="operator">(</span><span class="string">"ny"</span><span class="operator">,</span> nx<span class="operator">);</span>
+  Teuchos<span class="operator">::</span>RCP<span class="operator">&lt;</span>Epetra_Map<span class="operator">&gt;</span> Map<span class="operator"> =</span> Teuchos<span class="operator">::</span>rcp<span class="operator">(</span> Galeri<span class="operator">::</span>CreateMap<span class="operator">(</span><span class="string">"Linear"</span><span class="operator">,</span> Comm<span class="operator">,</span> GaleriList<span class="operator">) );</span>
+  Teuchos<span class="operator">::</span>RCP<span class="operator">&lt;</span>Epetra_RowMatrix<span class="operator">&gt;</span> A<span class="operator"> =</span> Teuchos<span class="operator">::</span>rcp<span class="operator">(</span> Galeri<span class="operator">::</span>CreateCrsMatrix<span class="operator">(</span><span class="string">"Laplace2D"</span><span class="operator">, &amp;*</span>Map<span class="operator">,</span> GaleriList<span class="operator">) );</span><span class="comment">
+
+  // =============================================================== //
+  // B E G I N N I N G   O F   I F P A C K   C O N S T R U C T I O N //
+  // =============================================================== //
+</span>
+  Teuchos<span class="operator">::</span>ParameterList List<span class="operator">;</span><span class="comment">
+
+  // allocates an IFPACK factory. No data is associated 
+  // to this object (only method Create()).
+</span>  Ifpack Factory<span class="operator">;</span><span class="comment">
+
+  // create the preconditioner. For valid PrecType values,
+  // please check the documentation
+</span>  string PrecType<span class="operator"> =</span><span class="string"> "ILU"</span><span class="operator">;</span><span class="comment"> // incomplete LU
+</span><span class="type">  int</span> OverlapLevel<span class="operator"> =</span><span class="int"> 1</span><span class="operator">;</span><span class="comment"> // must be &gt;= 0. If Comm.NumProc() == 1,
+                        // it is ignored.
+</span>
+  Teuchos<span class="operator">::</span>RCP<span class="operator">&lt;</span>Ifpack_Preconditioner<span class="operator">&gt;</span> Prec<span class="operator"> =</span> Teuchos<span class="operator">::</span>rcp<span class="operator">(</span> Factory<span class="operator">.</span>Create<span class="operator">(</span>PrecType<span class="operator">, &amp;*</span>A<span class="operator">,</span> OverlapLevel<span class="operator">) );</span>
+  assert<span class="operator">(</span>Prec<span class="operator"> !=</span> Teuchos<span class="operator">::</span>null<span class="operator">);</span><span class="comment">
+
+  // specify parameters for ILU
+</span>  List<span class="operator">.</span>set<span class="operator">(</span><span class="string">"fact: drop tolerance"</span><span class="operator">,</span><span class="float"> 1e-9</span><span class="operator">);</span>
+  List<span class="operator">.</span>set<span class="operator">(</span><span class="string">"fact: level-of-fill"</span><span class="operator">,</span><span class="int"> 1</span><span class="operator">);</span><span class="comment">
+  // the combine mode is on the following:
+  // "Add", "Zero", "Insert", "InsertAdd", "Average", "AbsMax"
+  // Their meaning is as defined in file Epetra_CombineMode.h   
+</span>  List<span class="operator">.</span>set<span class="operator">(</span><span class="string">"schwarz: combine mode"</span><span class="operator">,</span><span class="string"> "Add"</span><span class="operator">);</span><span class="comment">
+  // sets the parameters
+</span>  IFPACK_CHK_ERR<span class="operator">(</span>Prec<span class="operator">-&gt;</span>SetParameters<span class="operator">(</span>List<span class="operator">));</span><span class="comment">
+
+  // initialize the preconditioner. At this point the matrix must
+  // have been FillComplete()'d, but actual values are ignored.
+</span>  IFPACK_CHK_ERR<span class="operator">(</span>Prec<span class="operator">-&gt;</span>Initialize<span class="operator">());</span><span class="comment">
+
+  // Builds the preconditioners, by looking for the values of 
+  // the matrix.
+</span>  IFPACK_CHK_ERR<span class="operator">(</span>Prec<span class="operator">-&gt;</span>Compute<span class="operator">());</span><span class="comment">
+
+  // =================================================== //
+  // E N D   O F   I F P A C K   C O N S T R U C T I O N //
+  // =================================================== //
+
+  // At this point, we need some additional objects
+  // to define and solve the linear system.
+
+  // defines LHS and RHS
+</span>  Epetra_Vector LHS<span class="operator">(</span>A<span class="operator">-&gt;</span>OperatorDomainMap<span class="operator">());</span>
+  Epetra_Vector RHS<span class="operator">(</span>A<span class="operator">-&gt;</span>OperatorDomainMap<span class="operator">());</span><span class="comment">
+
+  // solution is constant
+</span>  LHS<span class="operator">.</span>PutScalar<span class="operator">(</span><span class="float">1.0</span><span class="operator">);</span><span class="comment">
+  // now build corresponding RHS
+</span>  A<span class="operator">-&gt;</span>Apply<span class="operator">(</span>LHS<span class="operator">,</span>RHS<span class="operator">);</span><span class="comment">
+
+  // now randomize the solution
+</span>  RHS<span class="operator">.</span>Random<span class="operator">();</span><span class="comment">
+
+  // need an Epetra_LinearProblem to define AztecOO solver
+</span>  Epetra_LinearProblem Problem<span class="operator">(&amp;*</span>A<span class="operator">,&amp;</span>LHS<span class="operator">,&amp;</span>RHS<span class="operator">);</span><span class="comment">
+
+  // now we can allocate the AztecOO solver
+</span>  AztecOO Solver<span class="operator">(</span>Problem<span class="operator">);</span><span class="comment">
+
+  // specify solver
+</span>  Solver<span class="operator">.</span>SetAztecOption<span class="operator">(</span>AZ_solver<span class="operator">,</span>AZ_gmres<span class="operator">);</span>
+  Solver<span class="operator">.</span>SetAztecOption<span class="operator">(</span>AZ_output<span class="operator">,</span><span class="int">32</span><span class="operator">);</span><span class="comment">
+
+  // HERE WE SET THE IFPACK PRECONDITIONER
+</span>  Solver<span class="operator">.</span>SetPrecOperator<span class="operator">(&amp;*</span>Prec<span class="operator">);</span><span class="comment">
+
+  // .. and here we solve
+</span>  Solver<span class="operator">.</span>Iterate<span class="operator">(</span><span class="int">1550</span><span class="operator">,</span><span class="float">1e-8</span><span class="operator">);</span>
+
+  std<span class="operator">::</span>cout<span class="operator"> &lt;&lt; *</span>Prec<span class="operator">;</span><span class="pre">
+
+#ifdef HAVE_MPI
+</span>  MPI_Finalize<span class="operator">() ;</span><span class="pre"> 
+#endif
+</span><span class="flow">
+  return</span><span class="operator">(</span>EXIT_SUCCESS<span class="operator">);
+}</span>
+
+</pre>
+
+
+</body></html>

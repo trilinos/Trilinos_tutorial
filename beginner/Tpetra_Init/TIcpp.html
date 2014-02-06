@@ -1,0 +1,139 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>C++ code colored by C++2HTML</title>
+<meta name="generator" content="C++2HTML by Jasper Bedaux">
+<!-- To generate your own colored code visit http://www.bedaux.net/cpp2html/ -->
+<style type="text/css">
+.comment { color: #999999; font-style: italic; }
+.pre { color: #000099; }
+.string { color: #009900; }
+.char { color: #009900; }
+.float { color: #996600; }
+.int { color: #999900; }
+.bool { color: #000000; font-weight: bold; }
+.type { color: #FF6633; }
+.flow { color: #FF0000; }
+.keyword { color: #990000; }
+.operator { color: #663300; font-weight: bold; }
+.operator { color: #663300; font-weight: bold; }
+</style>
+</head>
+<body>
+<pre><span class="comment">//@HEADER
+// ************************************************************************
+// 
+//               Tpetra: Linear Algebra Services Package 
+//                 Copyright (2009) Sandia Corporation
+// 
+// Under terms of Contract DE-AC04-94AL85000, there is a non-exclusive
+// license for use of this work by or on behalf of the U.S. Government.
+// 
+// This library is free software; you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as
+// published by the Free Software Foundation; either version 2.1 of the
+// License, or (at your option) any later version.
+//  
+// This library is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+// Lesser General Public License for more details.
+//  
+// You should have received a copy of the GNU Lesser General Public
+// License along with this library; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+// USA
+// Questions? Contact Michael A. Heroux (maherou@sandia.gov) 
+// 
+// ************************************************************************
+//@HEADER
+
+//
+// Example of basic initialization boilerplate for using Tpetra.
+//
+// Includes MPI initialization, getting a Teuchos::Comm communicator,
+// and printing out Tpetra version information.
+//
+</span><span class="pre">
+#include &lt;Tpetra_DefaultPlatform.hpp&gt;
+#include &lt;Tpetra_Version.hpp&gt;
+#include &lt;Teuchos_GlobalMPISession.hpp&gt;
+#include &lt;Teuchos_oblackholestream.hpp&gt;
+
+#include "../../aprepro_vhelp.h"
+</span><span class="type">
+void</span>
+exampleRoutine<span class="operator"> (</span><span class="keyword">const</span> Teuchos<span class="operator">::</span>RCP<span class="operator">&lt;</span><span class="keyword">const</span> Teuchos<span class="operator">::</span>Comm<span class="operator">&lt;</span><span class="type">int</span><span class="operator">&gt; &gt;&amp;</span> comm<span class="operator">,</span>
+                std<span class="operator">::</span>ostream<span class="operator">&amp;</span> out<span class="operator">)
+{</span><span class="keyword">
+  using</span> std<span class="operator">::</span>endl<span class="operator">;</span><span class="comment">
+
+  // Print out the Tpetra software version information.
+</span>  out<span class="operator"> &lt;&lt;</span> Tpetra<span class="operator">::</span>version<span class="operator">() &lt;&lt;</span> endl<span class="operator"> &lt;&lt;</span> endl<span class="operator">;
+}</span><span class="type">
+
+
+int</span><span class="keyword"> 
+main</span><span class="operator"> (</span><span class="type">int</span> argc<span class="operator">,</span><span class="type"> char</span><span class="operator"> *</span>argv<span class="operator">[]) 
+{</span><span class="comment">
+  // These "using" declarations make the code more concise, in that
+  // you don't have to write the namespace along with the class or
+  // object name.  This is especially helpful with commonly used
+  // things like std::endl or Teuchos::RCP.
+</span><span class="keyword">  using</span> std<span class="operator">::</span>endl<span class="operator">;</span><span class="keyword">
+  using</span> Teuchos<span class="operator">::</span>RCP<span class="operator">;</span><span class="comment">
+
+  // A "black hole stream" prints nothing.  It's like /dev/null in
+  // Unix-speak.  The typical MPI convention is that only MPI Rank 0
+  // is allowed to print anything.  We enforce this convention by
+  // setting Rank 0 to use std::cout for output, but all other ranks
+  // to use the black hole stream.  It's more concise and less error
+  // prone than having to check the rank every time you want to print.
+</span>  Teuchos<span class="operator">::</span>oblackholestream blackHole<span class="operator">;</span><span class="comment">
+
+  // Start up MPI, if using MPI.  Trilinos doesn't have to be built
+  // with MPI; it's called a "serial" build if you build without MPI.
+  // GlobalMPISession hides this implementation detail.
+  //
+  // Note the third argument.  If you pass GlobalMPISession the
+  // address of an std::ostream, it will print a one-line status
+  // message with the rank on each MPI process.  This may be
+  // undesirable if running with a large number of MPI processes.  You
+  // can avoid printing anything here by passing in either a "black
+  // hole stream" (see above) or NULL.
+</span>  Teuchos<span class="operator">::</span>GlobalMPISession mpiSession<span class="operator"> (&amp;</span>argc<span class="operator">, &amp;</span>argv<span class="operator">, &amp;</span>blackHole<span class="operator">);</span><span class="comment">
+
+  // Get a pointer to the communicator object representing
+  // MPI_COMM_WORLD.  getDefaultPlatform.getComm() doesn't create a
+  // new object every time you call it; it just returns the same
+  // communicator each time.  Thus, you can call it anywhere and get
+  // the same communicator.  (This is handy if you don't want to pass
+  // a communicator around everywhere, though it's always better to
+  // parameterize your algorithms on the communicator.)
+  //
+  // "Tpetra::DefaultPlatform" knows whether or not we built with MPI
+  // support.  If we didn't build with MPI, we'll get a "communicator"
+  // with size 1, whose only process has rank 0.
+</span>  RCP<span class="operator">&lt;</span><span class="keyword">const</span> Teuchos<span class="operator">::</span>Comm<span class="operator">&lt;</span><span class="type">int</span><span class="operator">&gt; &gt;</span> comm<span class="operator"> =</span> 
+    Tpetra<span class="operator">::</span>DefaultPlatform<span class="operator">::</span>getDefaultPlatform<span class="operator">().</span>getComm<span class="operator">();</span><span class="keyword">
+
+  const</span><span class="type"> int</span> myRank<span class="operator"> =</span> comm<span class="operator">-&gt;</span>getRank<span class="operator">();</span><span class="keyword">
+  const</span><span class="type"> int</span> numProcs<span class="operator"> =</span> comm<span class="operator">-&gt;</span>getSize<span class="operator">();</span><span class="comment">
+
+  // The stream to which to write output.  Only MPI Rank 0 gets to
+  // write to stdout; the other MPI processes get a "black hole
+  // stream" (see above).
+</span>  std<span class="operator">::</span>ostream<span class="operator">&amp;</span> out<span class="operator"> = (</span>myRank<span class="operator"> ==</span><span class="int"> 0</span><span class="operator">) ?</span> std<span class="operator">::</span>cout<span class="operator"> :</span> blackHole<span class="operator">;</span><span class="comment">
+
+  // We have a communicator and an output stream.
+  // Let's do something with them!
+</span>  exampleRoutine<span class="operator"> (</span>comm<span class="operator">,</span> out<span class="operator">);</span><span class="comment">
+
+  // GlobalMPISession calls MPI_Finalize() in its destructor, if
+  // appropriate.  You don't have to do anything here!  Just return
+  // from main().  Isn't that helpful?
+</span><span class="flow">  return</span><span class="int"> 0</span><span class="operator">;
+}</span></pre>
+
+
+</body></html>

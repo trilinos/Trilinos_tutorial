@@ -1,0 +1,156 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>C++ code colored by C++2HTML</title>
+<meta name="generator" content="C++2HTML by Jasper Bedaux">
+<!-- To generate your own colored code visit http://www.bedaux.net/cpp2html/ -->
+<style type="text/css">
+.comment { color: #999999; font-style: italic; }
+.pre { color: #000099; }
+.string { color: #009900; }
+.char { color: #009900; }
+.float { color: #996600; }
+.int { color: #999900; }
+.bool { color: #000000; font-weight: bold; }
+.type { color: #FF6633; }
+.flow { color: #FF0000; }
+.keyword { color: #990000; }
+.operator { color: #663300; font-weight: bold; }
+.operator { color: #663300; font-weight: bold; }
+</style>
+</head>
+<body>
+<pre><span class="pre">#include "Teuchos_ParameterList.hpp"
+#include "Teuchos_StandardParameterEntryValidators.hpp"
+#include "Teuchos_Array.hpp"
+#include "Teuchos_Version.hpp"
+
+#include "../../aprepro_vhelp.h"
+</span><span class="type">
+int</span><span class="keyword"> main</span><span class="operator">(</span><span class="type">int</span> argc<span class="operator">,</span><span class="type"> char</span><span class="operator">*</span> argv<span class="operator">[])
+{</span>
+
+  std<span class="operator">::</span>cout<span class="operator"> &lt;&lt;</span> Teuchos<span class="operator">::</span>Teuchos_Version<span class="operator">() &lt;&lt;</span> std<span class="operator">::</span>endl<span class="operator"> &lt;&lt;</span> std<span class="operator">::</span>endl<span class="operator">;</span><span class="comment">
+
+  // Creating an empty parameter list looks like:
+</span>  Teuchos<span class="operator">::</span>ParameterList My_List<span class="operator">;</span><span class="comment">
+
+  // Setting parameters in this list can be easily done:
+</span>  My_List<span class="operator">.</span>set<span class="operator">(</span><span class="string">"Max Iters"</span><span class="operator">,</span><span class="int"> 1550</span><span class="operator">,</span><span class="string"> "Determines the maximum number of iterations in the solver"</span><span class="operator">);</span>
+  My_List<span class="operator">.</span>set<span class="operator">(</span><span class="string">"Tolerance"</span><span class="operator">,</span><span class="float"> 1e-10</span><span class="operator">,</span><span class="string"> "The tolerance used for the convergence check"</span><span class="operator">);</span><span class="comment">
+
+  // For the "Solver" option, create a validator that will automatically
+  // create documentation for this parameter but will also help in validation.
+</span>  Teuchos<span class="operator">::</span>RCP<span class="operator">&lt;</span>Teuchos<span class="operator">::</span>StringToIntegralParameterEntryValidator<span class="operator">&lt;</span><span class="type">int</span><span class="operator">&gt; &gt;</span>
+    solverValidator<span class="operator"> =</span> Teuchos<span class="operator">::</span>rcp<span class="operator">(</span><span class="keyword">
+      new</span> Teuchos<span class="operator">::</span>StringToIntegralParameterEntryValidator<span class="operator">&lt;</span><span class="type">int</span><span class="operator">&gt;(</span>
+        Teuchos<span class="operator">::</span>tuple<span class="operator">&lt;</span>std<span class="operator">::</span>string<span class="operator">&gt;(</span><span class="string"> "GMRES"</span><span class="operator">,</span><span class="string"> "CG"</span><span class="operator">,</span><span class="string"> "TFQMR"</span><span class="operator"> )
+        ,</span><span class="string">"Solver"</span><span class="operator">
+        )
+      );</span>
+  My_List<span class="operator">.</span>set<span class="operator">(</span><span class="string">
+    "Solver"</span><span class="operator">
+    ,</span><span class="string">"GMRES"</span><span class="comment"> // This will be validated by solverValidator right here!
+</span><span class="operator">    ,</span><span class="string">"The type of solver to use."</span><span class="operator">
+    ,</span>solverValidator<span class="operator">
+    );</span><span class="comment">
+
+  /* The templated ``set'' method should cast the input {\it value} to the
+     correct data type.  However, in the case where the compiler is not casting the input
+     value to the expected data type, an explicit cast can be used with the ``set'' method:
+  */</span>
+  My_List<span class="operator">.</span>set<span class="operator">(</span><span class="string">"Tolerance"</span><span class="operator">, (</span><span class="type">float</span><span class="operator">)(</span><span class="float">1e-10</span><span class="operator">),</span><span class="string"> "The tolerance used for the convergence check"</span><span class="operator">);</span><span class="comment">
+
+  /* Reference-counted pointers can also be passed through a Teuchos::ParameterList.
+     To illustrate this we will use the Teuchos::Array class to create an array of 10 doubles
+     representing an initial guess for a linear solver, whose memory is being managed by a
+     Teuchos::RCP.
+   */</span>
+  Teuchos<span class="operator">::</span>RCP<span class="operator">&lt;</span>Teuchos<span class="operator">::</span>Array<span class="operator">&lt;</span><span class="type">double</span><span class="operator">&gt; &gt;</span> rcp_Array<span class="operator"> =</span>
+    Teuchos<span class="operator">::</span>rcp<span class="operator">(</span><span class="keyword"> new</span> Teuchos<span class="operator">::</span>Array<span class="operator">&lt;</span><span class="type">double</span><span class="operator">&gt;(</span><span class="int"> 10</span><span class="operator">,</span><span class="float"> 0.0</span><span class="operator"> ) );</span>
+  My_List<span class="operator">.</span>set<span class="operator">(</span><span class="string">"Initial Guess"</span><span class="operator">,</span> rcp_Array<span class="operator">,</span><span class="string"> "The initial guess as a RCP to an array object."</span><span class="operator">);</span><span class="comment">
+
+  /* A hierarchy of parameter lists can be constructed using {\tt Teuchos::ParameterList}.  This
+     means another parameter list is a valid {\it value} in any parameter list.  To create a sublist
+     in a parameter list and obtain a reference to it:
+  */</span>
+  Teuchos<span class="operator">::</span>ParameterList<span class="operator">&amp;</span>
+    Prec_List<span class="operator"> =</span> My_List<span class="operator">.</span>sublist<span class="operator">(</span><span class="string">"Preconditioner"</span><span class="operator">,</span><span class="bool">false</span><span class="operator">,</span><span class="string">"Sublist that defines the preconditioner."</span><span class="operator">);</span><span class="comment">
+
+  // Now this parameter list can be filled with values:
+</span>  Prec_List<span class="operator">.</span>set<span class="operator">(</span><span class="string">"Type"</span><span class="operator">,</span><span class="string"> "ILU"</span><span class="operator">,</span><span class="string"> "The type of preconditioner to use"</span><span class="operator">);</span>
+  Prec_List<span class="operator">.</span>set<span class="operator">(</span><span class="string">"Drop Tolerance"</span><span class="operator">,</span><span class="float"> 1e-3</span><span class="operator">
+                ,</span><span class="string">"The tolerance below which entries from the\n""factorization are left out of the factors."</span><span class="operator">);</span><span class="comment">
+
+  // The parameter list can be queried about the existance of a parameter, sublist, or type:
+  // Has a solver been chosen?
+</span><span class="type">  bool</span> solver_defined<span class="operator"> =</span><span class="bool"> false</span><span class="operator">,</span> prec_defined<span class="operator"> =</span><span class="bool"> false</span><span class="operator">,</span> dtol_double<span class="operator"> =</span><span class="bool"> false</span><span class="operator">;</span>
+  solver_defined<span class="operator"> =</span> My_List<span class="operator">.</span>isParameter<span class="operator">(</span><span class="string">"Solver"</span><span class="operator">);</span><span class="comment">
+
+  // Has a preconditioner been chosen?
+</span>  prec_defined<span class="operator"> =</span> My_List<span class="operator">.</span>isSublist<span class="operator">(</span><span class="string">"Preconditioner"</span><span class="operator">);</span><span class="comment">
+
+  // Has a tolerance been chosen and is it a double-precision number?
+</span><span class="type">  bool</span> tol_double<span class="operator"> =</span><span class="bool"> false</span><span class="operator">;</span>
+  tol_double<span class="operator"> =</span> My_List<span class="operator">.</span>INVALID_TEMPLATE_QUALIFIER isType<span class="operator">&lt;</span><span class="type">double</span><span class="operator">&gt;(</span><span class="string">"Tolerance"</span><span class="operator">);</span><span class="comment">
+
+  // Has a drop tolerance been chosen and is it a double-precision number?
+</span>  dtol_double<span class="operator"> =</span> Teuchos<span class="operator">::</span>isParameterType<span class="operator">&lt;</span><span class="type">double</span><span class="operator">&gt;(</span>Prec_List<span class="operator">,</span><span class="string"> "Drop Tolerance"</span><span class="operator">);</span><span class="comment">
+
+  /* The last two methods for checking the parameter type are equivalent.
+     There is some question as to whether the syntax of the first type-checking
+     method is acceptable to older compilers.  Thus, the second type-checking method
+     is offered as a portable alternative.
+  */</span><span class="comment">
+  // Parameters can be retrieved from the parameter list in quite a few ways:
+  // Get method that creates and sets the parameter if it doesn't exist.
+</span><span class="type">  int</span> its<span class="operator"> =</span><span class="int"> 0</span><span class="operator">;</span>
+  its<span class="operator"> =</span> My_List<span class="operator">.</span>get<span class="operator">(</span><span class="string">"Max Iters"</span><span class="operator">,</span><span class="int"> 1200</span><span class="operator">);</span><span class="type">
+
+  float</span> tol<span class="operator">;</span><span class="comment">
+  // Get method that retrieves a parameter of a particular type.
+</span>  tol<span class="operator"> =</span> My_List<span class="operator">.</span>INVALID_TEMPLATE_QUALIFIER get<span class="operator">&lt;</span><span class="type">float</span><span class="operator">&gt;(</span><span class="string">"Tolerance"</span><span class="operator">);</span><span class="comment">
+
+  // Get the "Solver" value and validate!
+</span>  std<span class="operator">::</span>string
+    solver<span class="operator"> =</span> solverValidator<span class="operator">-&gt;</span>validateString<span class="operator">(</span>
+      Teuchos<span class="operator">::</span>getParameter<span class="operator">&lt;</span>std<span class="operator">::</span>string<span class="operator">&gt;(</span>My_List<span class="operator">,</span><span class="string">"Solver"</span><span class="operator">)
+      );</span><span class="comment">
+
+  /* In the above example, the first ``get'' method is a safe way of
+     obtaining a parameter when its existence is indefinite but required.
+     The second ``get'' method should be used when the existense of the parameter
+     is definite.  This method will throw an std::exception if the parameter doesn't exist.
+     The safest way to use the second ``get'' method
+     is in a try/catch block:
+  */</span><span class="flow">
+  try</span><span class="operator"> {</span>
+    tol<span class="operator"> =</span> My_List<span class="operator">.</span>INVALID_TEMPLATE_QUALIFIER get<span class="operator">&lt;</span><span class="type">float</span><span class="operator">&gt;(</span><span class="string">"Tolerance"</span><span class="operator">);
+  }</span><span class="flow">
+
+  catch</span><span class="operator"> (</span> std<span class="operator">::</span>exception<span class="operator">&amp;</span> e<span class="operator">) {</span>
+    tol<span class="operator"> =</span><span class="float"> 1e-6</span><span class="operator">;
+  }</span><span class="comment">
+
+  /* The second ``get'' method uses a syntax that may not be
+     acceptable to older compilers.  Optionally, there is another portable templated
+     ``get'' function that can be used in the place of the second ``get'' method:
+  */</span><span class="flow">
+  try</span><span class="operator"> {</span>
+    tol<span class="operator"> =</span> Teuchos<span class="operator">::</span>getParameter<span class="operator">&lt;</span><span class="type">float</span><span class="operator">&gt;(</span>My_List<span class="operator">,</span><span class="string"> "Tolerance"</span><span class="operator">);
+  }</span><span class="flow">
+  catch</span><span class="operator"> (</span> std<span class="operator">::</span>exception<span class="operator">&amp;</span> e<span class="operator">) {</span>
+    tol<span class="operator"> =</span><span class="float"> 1e-6</span><span class="operator">;
+  }</span>
+
+  std<span class="operator">::</span>cout<span class="operator"> &lt;&lt;</span><span class="string"> "\n# Printing this parameter list using operator&lt;&lt;(...) ...\n\n"</span><span class="operator">;</span>
+  std<span class="operator">::</span>cout<span class="operator"> &lt;&lt;</span> My_List<span class="operator"> &lt;&lt;</span> std<span class="operator">::</span>endl<span class="operator">;</span>
+
+  std<span class="operator">::</span>cout<span class="operator"> &lt;&lt;</span><span class="string"> "\n# Printing the parameter list only showing documentation fields ...\n\n"</span><span class="operator">;</span>
+    My_List<span class="operator">.</span>print<span class="operator">(</span>std<span class="operator">::</span>cout<span class="operator">,</span>Teuchos<span class="operator">::</span>ParameterList<span class="operator">::</span>PrintOptions<span class="operator">().</span>showDoc<span class="operator">(</span><span class="bool">true</span><span class="operator">).</span>indent<span class="operator">(</span><span class="int">2</span><span class="operator">).</span>showTypes<span class="operator">(</span><span class="bool">true</span><span class="operator">));</span><span class="flow">
+
+  return</span><span class="int"> 0</span><span class="operator">;
+}</span></pre>
+
+
+</body></html>

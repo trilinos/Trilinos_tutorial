@@ -1,0 +1,202 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>C++ code colored by C++2HTML</title>
+<meta name="generator" content="C++2HTML by Jasper Bedaux">
+<!-- To generate your own colored code visit http://www.bedaux.net/cpp2html/ -->
+<style type="text/css">
+.comment { color: #999999; font-style: italic; }
+.pre { color: #000099; }
+.string { color: #009900; }
+.char { color: #009900; }
+.float { color: #996600; }
+.int { color: #999900; }
+.bool { color: #000000; font-weight: bold; }
+.type { color: #FF6633; }
+.flow { color: #FF0000; }
+.keyword { color: #990000; }
+.operator { color: #663300; font-weight: bold; }
+.operator { color: #663300; font-weight: bold; }
+</style>
+</head>
+<body>
+<pre><span class="pre">
+#include "Epetra_CrsMatrix.h"
+#include "Epetra_MultiVector.h"
+#include "Epetra_LinearProblem.h"
+#include "Galeri_Maps.h"
+#include "Galeri_CrsMatrices.h"
+#include "Teuchos_ParameterList.hpp"
+#include "Teuchos_RCP.hpp"
+#include "Ifpack.h"
+#include "Ifpack_AdditiveSchwarz.h"
+#include "BelosLinearProblem.hpp"
+#include "BelosBlockGmresSolMgr.hpp"
+#include "BelosEpetraAdapter.hpp"
+#ifdef HAVE_MPI
+#include "Epetra_MpiComm.h"
+#else
+#include "Epetra_SerialComm.h"
+#endif
+
+#include "../../aprepro_vhelp.h"
+</span><span class="type">
+int</span><span class="keyword">
+main</span><span class="operator"> (</span><span class="type">int</span> argc<span class="operator">,</span><span class="type"> char</span><span class="operator"> *</span>argv<span class="operator">[])
+{</span><span class="keyword">
+  using</span> std<span class="operator">::</span>cout<span class="operator">;</span><span class="keyword">
+  using</span> std<span class="operator">::</span>endl<span class="operator">;</span><span class="keyword">
+  using</span> Teuchos<span class="operator">::</span>ParameterList<span class="operator">;</span><span class="keyword">
+  using</span> Teuchos<span class="operator">::</span>RCP<span class="operator">;</span><span class="keyword">
+  using</span> Teuchos<span class="operator">::</span>rcp<span class="operator">;</span><span class="pre">
+
+#ifdef HAVE_MPI
+</span>  MPI_Init<span class="operator">(&amp;</span>argc<span class="operator">,&amp;</span>argv<span class="operator">);</span>
+  Epetra_MpiComm Comm<span class="operator">(</span> MPI_COMM_WORLD<span class="operator"> );</span><span class="pre">
+#else
+</span>  Epetra_SerialComm Comm<span class="operator">;</span><span class="pre">
+#endif
+</span><span class="keyword">  const</span><span class="type"> int</span> myRank<span class="operator"> =</span> Comm<span class="operator">.</span>MyPID<span class="operator">();</span>
+
+  ParameterList GaleriList<span class="operator">;</span><span class="comment">
+
+  // The problem is defined on a 2D grid, global size is nx * nx.
+</span><span class="type">  int</span> nx<span class="operator"> =</span><span class="int"> 30</span><span class="operator">;</span> 
+  GaleriList<span class="operator">.</span>set<span class="operator">(</span><span class="string">"n"</span><span class="operator">,</span> nx<span class="operator"> *</span> nx<span class="operator">);</span>
+  GaleriList<span class="operator">.</span>set<span class="operator">(</span><span class="string">"nx"</span><span class="operator">,</span> nx<span class="operator">);</span>
+  GaleriList<span class="operator">.</span>set<span class="operator">(</span><span class="string">"ny"</span><span class="operator">,</span> nx<span class="operator">);</span>
+  RCP<span class="operator">&lt;</span>Epetra_Map<span class="operator">&gt;</span> Map<span class="operator"> =</span> 
+    rcp<span class="operator"> (</span>Galeri<span class="operator">::</span>CreateMap<span class="operator">(</span><span class="string">"Linear"</span><span class="operator">,</span> Comm<span class="operator">,</span> GaleriList<span class="operator">));</span><span class="comment">
+  // "&amp;*Map" turns an RCP&lt;Map&gt; into a raw pointer, which is what
+  // Galeri::CreateCrsMatrix() wants.
+</span>  RCP<span class="operator">&lt;</span>Epetra_RowMatrix<span class="operator">&gt;</span> A<span class="operator"> =</span> 
+    rcp<span class="operator"> (</span>Galeri<span class="operator">::</span>CreateCrsMatrix<span class="operator">(</span><span class="string">"Laplace2D"</span><span class="operator">, &amp;*</span>Map<span class="operator">,</span> GaleriList<span class="operator">));</span>
+  TEUCHOS_TEST_FOR_EXCEPTION<span class="operator">(</span>A<span class="operator"> ==</span> Teuchos<span class="operator">::</span>null<span class="operator">,</span> std<span class="operator">::</span>runtime_error<span class="operator">,</span><span class="string">
+                     "Galeri returned a null operator A."</span><span class="operator">);</span><span class="comment">
+
+  // =============================================================== //
+  // B E G I N N I N G   O F   I F P A C K   C O N S T R U C T I O N //
+  // =============================================================== //
+</span>
+  ParameterList List<span class="operator">;</span><span class="comment">
+
+  // Allocate an IFPACK factory.  The object contains no data, only
+  // the Create() method for creating preconditioners.
+</span>  Ifpack Factory<span class="operator">;</span><span class="comment">
+
+  // Create the preconditioner.  For the list of PrecType values that
+  // Create() accepts, please check the IFPACK documentation.
+</span>  string PrecType<span class="operator"> =</span><span class="string"> "ILU"</span><span class="operator">;</span><span class="comment"> // incomplete LU
+</span><span class="type">  int</span> OverlapLevel<span class="operator"> =</span><span class="int"> 1</span><span class="operator">;</span><span class="comment"> // must be &gt;= 0. If Comm.NumProc() == 1,
+                        // it is ignored.
+</span>
+  RCP<span class="operator">&lt;</span>Ifpack_Preconditioner<span class="operator">&gt;</span> Prec<span class="operator"> =</span> 
+    rcp<span class="operator"> (</span>Factory<span class="operator">.</span>Create<span class="operator"> (</span>PrecType<span class="operator">, &amp;*</span>A<span class="operator">,</span> OverlapLevel<span class="operator">));</span>
+  TEUCHOS_TEST_FOR_EXCEPTION<span class="operator">(</span>Prec<span class="operator"> ==</span> Teuchos<span class="operator">::</span>null<span class="operator">,</span> std<span class="operator">::</span>runtime_error<span class="operator">,</span><span class="string">
+                     "IFPACK failed to create a preconditioner of type \""</span><span class="operator"> 
+                     &lt;&lt;</span> PrecType<span class="operator"> &lt;&lt;</span><span class="string"> "\" with overlap level "</span><span class="operator"> 
+                     &lt;&lt;</span> OverlapLevel<span class="operator"> &lt;&lt;</span><span class="string"> "."</span><span class="operator">);</span><span class="comment">
+
+  // Specify parameters for ILU.  ILU is local to each MPI process.
+</span>  List<span class="operator">.</span>set<span class="operator">(</span><span class="string">"fact: drop tolerance"</span><span class="operator">,</span><span class="float"> 1e-9</span><span class="operator">);</span>
+  List<span class="operator">.</span>set<span class="operator">(</span><span class="string">"fact: level-of-fill"</span><span class="operator">,</span><span class="int"> 1</span><span class="operator">);</span><span class="comment">
+
+  // IFPACK uses overlapping Schwarz domain decomposition over all
+  // participating processes to combine the results of ILU on each
+  // process.  IFPACK's Schwarz method can use any of the following
+  // combine modes to combine overlapping results:
+  //
+  // "Add", "Zero", "Insert", "InsertAdd", "Average", "AbsMax"
+  //
+  // The Epetra_CombineMode.h header file defines their meaning.
+</span>  List<span class="operator">.</span>set<span class="operator">(</span><span class="string">"schwarz: combine mode"</span><span class="operator">,</span><span class="string"> "Add"</span><span class="operator">);</span><span class="comment">
+  // Set the parameters.
+</span>  IFPACK_CHK_ERR<span class="operator">(</span>Prec<span class="operator">-&gt;</span>SetParameters<span class="operator">(</span>List<span class="operator">));</span><span class="comment">
+
+  // Initialize the preconditioner. At this point the matrix must have
+  // been FillComplete()'d, but actual values are ignored.
+</span>  IFPACK_CHK_ERR<span class="operator">(</span>Prec<span class="operator">-&gt;</span>Initialize<span class="operator">());</span><span class="comment">
+
+  // Build the preconditioner, by looking at the values of the matrix.
+</span>  IFPACK_CHK_ERR<span class="operator">(</span>Prec<span class="operator">-&gt;</span>Compute<span class="operator">());</span><span class="comment">
+
+  // Create the Belos preconditioned operator from the Ifpack preconditioner.
+  // NOTE:  This is necessary because Belos expects an operator to apply the
+  //        preconditioner with Apply() NOT ApplyInverse().
+</span>  RCP<span class="operator">&lt;</span>Belos<span class="operator">::</span>EpetraPrecOp<span class="operator">&gt;</span> belosPrec<span class="operator"> =</span> rcp<span class="operator"> (</span><span class="keyword">new</span> Belos<span class="operator">::</span>EpetraPrecOp<span class="operator"> (</span>Prec<span class="operator">));</span><span class="comment">
+
+  // =================================================== //
+  // E N D   O F   I F P A C K   C O N S T R U C T I O N //
+  // =================================================== //
+
+  // At this point, we need some additional objects
+  // to define and solve the linear system.
+
+  // Define the left-hand side (the solution / initial guess vector)
+  // and right-hand side.  The solution is in the domain of the
+  // operator A, and the right-hand side is in the range of A. 
+</span>  RCP<span class="operator">&lt;</span>Epetra_MultiVector<span class="operator">&gt;</span> LHS<span class="operator"> =</span> rcp<span class="operator"> (</span><span class="keyword">new</span> Epetra_MultiVector<span class="operator"> (</span>A<span class="operator">-&gt;</span>OperatorDomainMap<span class="operator"> (),</span><span class="int"> 1</span><span class="operator">));</span>
+  RCP<span class="operator">&lt;</span>Epetra_MultiVector<span class="operator">&gt;</span> RHS<span class="operator"> =</span> rcp<span class="operator"> (</span><span class="keyword">new</span> Epetra_MultiVector<span class="operator"> (</span>A<span class="operator">-&gt;</span>OperatorDomainMap<span class="operator"> (),</span><span class="int"> 1</span><span class="operator">));</span><span class="comment">
+
+  // Make the exact solution a vector of all ones.
+</span>  LHS<span class="operator">-&gt;</span>PutScalar<span class="operator">(</span><span class="float">1.0</span><span class="operator">);</span><span class="comment">
+  // Compute RHS := A * LHS.
+</span>  A<span class="operator">-&gt;</span>Apply<span class="operator">(*</span>LHS<span class="operator">,*</span>RHS<span class="operator">);</span><span class="comment">
+
+  // Now randomize the right-hand side.
+</span>  RHS<span class="operator">-&gt;</span>Random<span class="operator">();</span><span class="comment">
+
+  // Need a Belos::LinearProblem to define a Belos solver   
+</span><span class="keyword">  typedef</span> Epetra_MultiVector                MV<span class="operator">;</span><span class="keyword">
+  typedef</span> Epetra_Operator                   OP<span class="operator">;</span>    
+  RCP<span class="operator">&lt;</span>Belos<span class="operator">::</span>LinearProblem<span class="operator">&lt;</span><span class="type">double</span><span class="operator">,</span>MV<span class="operator">,</span>OP<span class="operator">&gt; &gt;</span> problem<span class="operator">
+    =</span> rcp<span class="operator"> (</span><span class="keyword">new</span> Belos<span class="operator">::</span>LinearProblem<span class="operator">&lt;</span><span class="type">double</span><span class="operator">,</span>MV<span class="operator">,</span>OP<span class="operator">&gt;(</span>A<span class="operator">,</span> LHS<span class="operator">,</span> RHS<span class="operator">));</span><span class="comment">
+
+  // Set the IFPACK preconditioner.
+  //
+  // We're using it as a right preconditioner.  It's better to use a
+  // right preconditioner than a left preconditioner in GMRES, because
+  // otherwise the projected problem will have a different residual
+  // (in exact arithmetic) than the original problem.  This makes it
+  // harder for GMRES to tell when it has converged.
+</span>  problem<span class="operator">-&gt;</span>setRightPrec<span class="operator"> (</span>belosPrec<span class="operator">);</span><span class="type">
+
+  bool</span> set<span class="operator"> =</span> problem<span class="operator">-&gt;</span>setProblem<span class="operator">();</span>
+  TEUCHOS_TEST_FOR_EXCEPTION<span class="operator">( !</span> set<span class="operator">,</span> 
+                      std<span class="operator">::</span>runtime_error<span class="operator">,</span><span class="string"> 
+                      "*** Belos::LinearProblem failed to set up correctly! ***"</span><span class="operator">);</span><span class="comment">
+
+  // Create a parameter list to define the Belos solver.
+</span>  RCP<span class="operator">&lt;</span>ParameterList<span class="operator">&gt;</span> belosList<span class="operator"> =</span> rcp<span class="operator"> (</span><span class="keyword">new</span> ParameterList<span class="operator"> ());</span>
+  belosList<span class="operator">-&gt;</span>set<span class="operator"> (</span><span class="string">"Block Size"</span><span class="operator">,</span><span class="int"> 1</span><span class="operator">);</span><span class="comment">              // Blocksize to be used by iterative solver
+</span>  belosList<span class="operator">-&gt;</span>set<span class="operator"> (</span><span class="string">"Maximum Iterations"</span><span class="operator">,</span><span class="int"> 1550</span><span class="operator">);</span><span class="comment">   // Maximum number of iterations allowed
+</span>  belosList<span class="operator">-&gt;</span>set<span class="operator"> (</span><span class="string">"Convergence Tolerance"</span><span class="operator">,</span><span class="float"> 1e-8</span><span class="operator">);</span><span class="comment">// Relative convergence tolerance requested
+</span>  belosList<span class="operator">-&gt;</span>set<span class="operator"> (</span><span class="string">"Verbosity"</span><span class="operator">,</span> Belos<span class="operator">::</span>Errors<span class="operator">+</span>Belos<span class="operator">::</span>Warnings<span class="operator">+</span>Belos<span class="operator">::</span>TimingDetails<span class="operator">+</span>Belos<span class="operator">::</span>FinalSummary<span class="operator"> );</span><span class="comment">
+
+  // Create an iterative solver manager.
+</span>  Belos<span class="operator">::</span>BlockGmresSolMgr<span class="operator">&lt;</span><span class="type">double</span><span class="operator">,</span>MV<span class="operator">,</span>OP<span class="operator">&gt;</span> belosSolver<span class="operator"> (</span>problem<span class="operator">,</span> belosList<span class="operator">);</span><span class="comment">
+
+  // Perform solve.
+</span>  Belos<span class="operator">::</span>ReturnType ret<span class="operator"> =</span> belosSolver<span class="operator">.</span>solve<span class="operator">();</span><span class="comment">
+
+  // Did we converge?
+</span><span class="flow">  if</span><span class="operator"> (</span>myRank<span class="operator"> ==</span><span class="int"> 0</span><span class="operator">) {</span><span class="flow">
+    if</span><span class="operator"> (</span>ret<span class="operator"> ==</span> Belos<span class="operator">::</span>Converged<span class="operator">) {</span>
+      std<span class="operator">::</span>cout<span class="operator"> &lt;&lt;</span><span class="string"> "Belos converged."</span><span class="operator"> &lt;&lt;</span> std<span class="operator">::</span>endl<span class="operator">;
+    }</span><span class="flow"> else</span><span class="operator"> {</span>
+      std<span class="operator">::</span>cout<span class="operator"> &lt;&lt;</span><span class="string"> "Belos did not converge."</span><span class="operator"> &lt;&lt;</span> std<span class="operator">::</span>endl<span class="operator">;
+    }
+  }</span><span class="comment">
+
+  // Print out the preconditioner.  IFPACK preconditioner objects know
+  // how to print themselves in parallel directly to std::cout.
+</span>  std<span class="operator">::</span>cout<span class="operator"> &lt;&lt; *</span>Prec<span class="operator">;</span><span class="pre">
+
+#ifdef HAVE_MPI
+</span>  MPI_Finalize<span class="operator">() ;</span><span class="pre"> 
+#endif
+</span><span class="flow">  return</span><span class="int"> 0</span><span class="operator">;
+}</span></pre>
+
+
+</body></html>

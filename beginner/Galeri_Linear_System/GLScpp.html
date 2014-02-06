@@ -1,0 +1,81 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>C++ code colored by C++2HTML</title>
+<meta name="generator" content="C++2HTML by Jasper Bedaux">
+<!-- To generate your own colored code visit http://www.bedaux.net/cpp2html/ -->
+<style type="text/css">
+.comment { color: #999999; font-style: italic; }
+.pre { color: #000099; }
+.string { color: #009900; }
+.char { color: #009900; }
+.float { color: #996600; }
+.int { color: #999900; }
+.bool { color: #000000; font-weight: bold; }
+.type { color: #FF6633; }
+.flow { color: #FF0000; }
+.keyword { color: #990000; }
+.operator { color: #663300; font-weight: bold; }
+.operator { color: #663300; font-weight: bold; }
+</style>
+</head>
+<body>
+<pre><span class="pre">#include "Galeri_Maps.h"
+#include "Galeri_CrsMatrices.h"
+#include "Galeri_Utils.h"
+#ifdef HAVE_MPI
+#include "Epetra_MpiComm.h"
+#include "mpi.h"
+#else
+#include "Epetra_SerialComm.h"
+#endif
+#include "Epetra_Map.h"
+#include "Epetra_CrsMatrix.h"
+#include "Teuchos_ParameterList.hpp"
+#include "Teuchos_RCP.hpp"
+
+#include "../../aprepro_vhelp.h"
+</span><span class="keyword">
+using namespace</span> Galeri<span class="operator">;</span><span class="comment">
+
+// =========== //
+// main driver //
+// =========== //
+</span><span class="type">
+int</span><span class="keyword"> main</span><span class="operator">(</span><span class="type">int</span> argv<span class="operator">,</span><span class="type"> char</span><span class="operator">*</span> argc<span class="operator">[])
+{</span><span class="keyword">
+  using</span> Teuchos<span class="operator">::</span>RCP<span class="operator">;</span><span class="keyword">
+  using</span> Teuchos<span class="operator">::</span>rcp<span class="operator">;</span><span class="pre">
+
+#ifdef HAVE_MPI
+</span>  MPI_Init<span class="operator"> (&amp;</span>argv<span class="operator">, &amp;</span>argc<span class="operator">);</span>
+  Epetra_MpiComm Comm<span class="operator"> (</span>MPI_COMM_WORLD<span class="operator">);</span><span class="pre">
+#else
+</span>  Epetra_SerialComm Comm<span class="operator">;</span><span class="pre">
+#endif
+</span><span class="comment">
+  // Create a parameter list
+</span>  Teuchos<span class="operator">::</span>ParameterList GaleriList<span class="operator">;</span><span class="comment">
+
+  // Set the number of discretization points in the x and y direction.
+</span>  GaleriList<span class="operator">.</span>set<span class="operator"> (</span><span class="string">"nx"</span><span class="operator">,</span><span class="int"> 10</span><span class="operator"> *</span> Comm<span class="operator">.</span>NumProc<span class="operator"> ());</span>
+  GaleriList<span class="operator">.</span>set<span class="operator"> (</span><span class="string">"ny"</span><span class="operator">,</span><span class="int"> 10</span><span class="operator">);</span><span class="comment">
+
+  // Create the map and matrix using the parameter list for a 2D Laplacian.
+</span>  RCP<span class="operator">&lt;</span>Epetra_Map<span class="operator">&gt;</span> Map<span class="operator"> =</span> rcp<span class="operator"> (</span>CreateMap<span class="operator"> (</span><span class="string">"Cartesian2D"</span><span class="operator">,</span> Comm<span class="operator">,</span> GaleriList<span class="operator">));</span>
+  RCP<span class="operator">&lt;</span>Epetra_CrsMatrix<span class="operator">&gt;</span> Matrix<span class="operator"> =</span> rcp<span class="operator"> (</span>CreateCrsMatrix<span class="operator"> (</span><span class="string">"Laplace2D"</span><span class="operator">, &amp;*</span>Map<span class="operator">,</span> GaleriList<span class="operator">));</span><span class="comment">
+
+  // Print out the map and matrices  
+</span>  Map<span class="operator">-&gt;</span>Print<span class="operator"> (</span>std<span class="operator">::</span>cout<span class="operator">);</span>
+  Matrix<span class="operator">-&gt;</span>Print<span class="operator"> (</span>std<span class="operator">::</span>cout<span class="operator">);</span><span class="pre">
+
+#ifdef HAVE_MPI
+</span>  MPI_Finalize<span class="operator"> ();</span><span class="pre">
+#endif
+</span><span class="flow">  return</span><span class="int"> 0</span><span class="operator">;
+}</span>
+
+</pre>
+
+
+</body></html>

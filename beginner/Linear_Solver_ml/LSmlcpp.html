@@ -1,0 +1,145 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>C++ code colored by C++2HTML</title>
+<meta name="generator" content="C++2HTML by Jasper Bedaux">
+<!-- To generate your own colored code visit http://www.bedaux.net/cpp2html/ -->
+<style type="text/css">
+.comment { color: #999999; font-style: italic; }
+.pre { color: #000099; }
+.string { color: #009900; }
+.char { color: #009900; }
+.float { color: #996600; }
+.int { color: #999900; }
+.bool { color: #000000; font-weight: bold; }
+.type { color: #FF6633; }
+.flow { color: #FF0000; }
+.keyword { color: #990000; }
+.operator { color: #663300; font-weight: bold; }
+.operator { color: #663300; font-weight: bold; }
+</style>
+</head>
+<body>
+<pre><span class="comment">//
+// Use ML to build a smoothed aggregation multigrid operator.
+// Use the operator as a black-box preconditioner in AztecOO's CG.
+//
+</span><span class="pre">#include "Epetra_ConfigDefs.h"
+#ifdef HAVE_MPI
+#  include "mpi.h"
+#  include "Epetra_MpiComm.h"
+#else
+#  include "Epetra_SerialComm.h"
+#endif
+#include "Epetra_Map.h"
+#include "Epetra_Vector.h"
+#include "Epetra_RowMatrix.h"
+#include "Epetra_CrsMatrix.h"
+#include "Epetra_LinearProblem.h"
+#include "Epetra_Time.h"
+#include "AztecOO.h"
+
+#include "../../aprepro_vhelp.h"
+</span><span class="comment">
+// The ML include file required when working with Epetra objects.
+</span><span class="pre">#include "ml_epetra_preconditioner.h"
+
+#include "Trilinos_Util_CrsMatrixGallery.h"
+</span><span class="keyword">
+using namespace</span> Teuchos<span class="operator">;</span><span class="keyword">
+using namespace</span> Trilinos_Util<span class="operator">;</span><span class="pre">
+
+#include &lt;iostream&gt;
+</span><span class="type">
+int</span><span class="keyword"> 
+main</span><span class="operator"> (</span><span class="type">int</span> argc<span class="operator">,</span><span class="type"> char</span><span class="operator"> *</span>argv<span class="operator">[])
+{</span><span class="pre">
+#ifdef EPETRA_MPI
+</span>  MPI_Init<span class="operator"> (&amp;</span>argc<span class="operator">,&amp;</span>argv<span class="operator">);</span>
+  Epetra_MpiComm Comm<span class="operator"> (</span>MPI_COMM_WORLD<span class="operator">);</span><span class="pre">
+#else
+</span>  Epetra_SerialComm Comm<span class="operator">;</span><span class="pre">
+#endif
+</span>
+  Epetra_Time Time<span class="operator">(</span>Comm<span class="operator">);</span><span class="comment">
+
+  // Initialize a Gallery object, for generating a 3-D Laplacian
+  // matrix distributed over the given communicator Comm.
+</span>  CrsMatrixGallery Gallery<span class="operator">(</span><span class="string">"laplace_3d"</span><span class="operator">,</span> Comm<span class="operator">);</span>
+
+  Gallery<span class="operator">.</span>Set<span class="operator">(</span><span class="string">"problem_size"</span><span class="operator">,</span><span class="int"> 1000</span><span class="operator">);</span><span class="comment">
+
+  // Get pointers to the generated matrix and a test linear problem.
+</span>  Epetra_RowMatrix<span class="operator">*</span> A<span class="operator"> =</span> Gallery<span class="operator">.</span>GetMatrix<span class="operator">();</span>
+
+  Epetra_LinearProblem<span class="operator">*</span> Problem<span class="operator"> =</span> Gallery<span class="operator">.</span>GetLinearProblem<span class="operator">();</span><span class="comment">
+
+  // Construct an AztecOO solver object for this problem.
+</span>  AztecOO solver<span class="operator"> (*</span>Problem<span class="operator">);</span><span class="comment">
+
+  // Create the preconditioner object and compute the multilevel hierarchy.
+</span>  ML_Epetra<span class="operator">::</span>MultiLevelPreconditioner<span class="operator"> *</span> MLPrec<span class="operator"> =</span><span class="keyword"> 
+    new</span> ML_Epetra<span class="operator">::</span>MultiLevelPreconditioner<span class="operator">(*</span>A<span class="operator">,</span><span class="bool"> true</span><span class="operator">);</span><span class="comment">
+
+  // Tell AztecOO to use this preconditioner.
+</span>  solver<span class="operator">.</span>SetPrecOperator<span class="operator">(</span>MLPrec<span class="operator">);</span><span class="comment">
+
+  // Tell AztecOO to use CG to solve the problem.
+</span>  solver<span class="operator">.</span>SetAztecOption<span class="operator">(</span>AZ_solver<span class="operator">,</span> AZ_cg<span class="operator">);</span><span class="comment">
+
+  // Tell AztecOO to output status information every iteration 
+  // (hence the 1, which is the output frequency in terms of 
+  // number of iterations).
+</span>  solver<span class="operator">.</span>SetAztecOption<span class="operator">(</span>AZ_output<span class="operator">,</span><span class="int"> 1</span><span class="operator">);</span><span class="comment">
+
+  // Maximum number of iterations to try.
+</span><span class="type">  int</span> Niters<span class="operator"> =</span><span class="int"> 150</span><span class="operator">;</span><span class="comment"> 
+  // Convergence tolerance.
+</span><span class="type">  double</span> tol<span class="operator"> =</span><span class="float"> 1e-10</span><span class="operator">;</span><span class="comment">
+
+  // Solve the linear problem.
+</span>  solver<span class="operator">.</span>Iterate<span class="operator"> (</span>Niters<span class="operator">,</span> tol<span class="operator">);</span><span class="comment">
+
+  // Print out some information about the preconditioner
+</span><span class="flow">  if</span><span class="operator"> (</span>Comm<span class="operator">.</span>MyPID<span class="operator">() ==</span><span class="int"> 0</span><span class="operator">)</span> 
+    cout<span class="operator"> &lt;&lt;</span> MLPrec<span class="operator">-&gt;</span>GetOutputList<span class="operator">();</span><span class="comment">
+
+  // We're done with the preconditioner now, so we can deallocate it.
+</span><span class="keyword">  delete</span> MLPrec<span class="operator">;</span><span class="comment">
+
+  // Verify the solution by computing the residual explicitly.
+</span><span class="type">  double</span> residual<span class="operator"> =</span><span class="float"> 0.0</span><span class="operator">;</span><span class="type">
+  double</span> diff<span class="operator"> =</span><span class="float"> 0.0</span><span class="operator">;</span>
+  Gallery<span class="operator">.</span>ComputeResidual<span class="operator"> (&amp;</span>residual<span class="operator">);</span>
+  Gallery<span class="operator">.</span>ComputeDiffBetweenStartingAndExactSolutions<span class="operator"> (&amp;</span>diff<span class="operator">);</span><span class="comment">
+
+  // The Epetra_Time object has been keeping track of elapsed time
+  // locally (on this MPI process).  Take the min and max globally
+  // to find the min and max elapsed time over all MPI processes.
+</span><span class="type">  double</span> myElapsedTime<span class="operator"> =</span> Time<span class="operator">.</span>ElapsedTime<span class="operator"> ();</span><span class="type">
+  double</span> minElapsedTime<span class="operator"> =</span><span class="float"> 0.0</span><span class="operator">;</span><span class="type">
+  double</span> maxElapsedTime<span class="operator"> =</span><span class="float"> 0.0</span><span class="operator">;
+  (</span><span class="type">void</span><span class="operator">)</span> Comm<span class="operator">.</span>MinAll<span class="operator"> (&amp;</span>myElapsedTime<span class="operator">, &amp;</span>minElapsedTime<span class="operator">,</span><span class="int"> 1</span><span class="operator">);
+  (</span><span class="type">void</span><span class="operator">)</span> Comm<span class="operator">.</span>MaxAll<span class="operator"> (&amp;</span>myElapsedTime<span class="operator">, &amp;</span>maxElapsedTime<span class="operator">,</span><span class="int"> 1</span><span class="operator">);</span><span class="flow">
+
+  if</span><span class="operator"> (</span>Comm<span class="operator">.</span>MyPID<span class="operator">()==</span><span class="int">0</span><span class="operator">) {</span><span class="keyword">
+    const</span><span class="type"> int</span> numProcs<span class="operator"> =</span> Comm<span class="operator">.</span>NumProc<span class="operator"> ();</span>
+    cout<span class="operator"> &lt;&lt;</span><span class="string"> "||b-Ax||_2 = "</span><span class="operator"> &lt;&lt;</span> residual<span class="operator"> &lt;&lt;</span> endl<span class="operator">
+         &lt;&lt;</span><span class="string"> "||x_exact - x||_2 = "</span><span class="operator"> &lt;&lt;</span> diff<span class="operator"> &lt;&lt;</span> endl<span class="operator">
+         &lt;&lt;</span><span class="string"> "Min total time (s) over "</span><span class="operator"> &lt;&lt;</span> numProcs<span class="operator"> &lt;&lt;</span><span class="string"> " processes: "</span><span class="operator"> 
+         &lt;&lt;</span> minElapsedTime<span class="operator"> &lt;&lt;</span> endl<span class="operator">
+         &lt;&lt;</span><span class="string"> "Max total time (s) over "</span><span class="operator"> &lt;&lt;</span> numProcs<span class="operator"> &lt;&lt;</span><span class="string"> " processes: "</span><span class="operator">
+         &lt;&lt;</span> maxElapsedTime<span class="operator"> &lt;&lt;</span> endl<span class="operator">;
+  }</span><span class="pre">
+
+#ifdef EPETRA_MPI
+</span>  MPI_Finalize<span class="operator">() ;</span><span class="pre">
+#endif
+</span><span class="flow">  return</span><span class="operator">(</span>EXIT_SUCCESS<span class="operator">);
+}</span>
+
+
+</pre>
+
+
+</body></html>

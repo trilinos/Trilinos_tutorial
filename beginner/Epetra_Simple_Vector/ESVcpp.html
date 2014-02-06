@@ -1,0 +1,63 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>C++ code colored by C++2HTML</title>
+<meta name="generator" content="C++2HTML by Jasper Bedaux">
+<!-- To generate your own colored code visit http://www.bedaux.net/cpp2html/ -->
+<style type="text/css">
+.comment { color: #999999; font-style: italic; }
+.pre { color: #000099; }
+.string { color: #009900; }
+.char { color: #009900; }
+.float { color: #996600; }
+.int { color: #999900; }
+.bool { color: #000000; font-weight: bold; }
+.type { color: #FF6633; }
+.flow { color: #FF0000; }
+.keyword { color: #990000; }
+.operator { color: #663300; font-weight: bold; }
+.operator { color: #663300; font-weight: bold; }
+</style>
+</head>
+<body>
+<pre><span class="pre">#include "Epetra_SerialComm.h"
+#include "Epetra_Map.h"
+#include "Epetra_Vector.h"
+#include "Epetra_Version.h"
+#include "../../aprepro_vhelp.h"
+</span><span class="type">
+int</span><span class="keyword"> main</span><span class="operator">(</span><span class="type">int</span> argc<span class="operator">,</span><span class="type"> char</span><span class="operator"> *</span>argv<span class="operator">[])
+{</span>
+
+  cout<span class="operator"> &lt;&lt;</span> Epetra_Version<span class="operator">() &lt;&lt;</span> endl<span class="operator"> &lt;&lt;</span> endl<span class="operator">;</span>
+
+  Epetra_SerialComm Comm<span class="operator">;</span><span class="type">
+
+  int</span> NumElements<span class="operator"> =</span><span class="int"> 1000</span><span class="operator">;</span><span class="comment">
+
+  // Construct a Map with NumElements and index base of 0
+</span>  Epetra_Map Map<span class="operator">(</span>NumElements<span class="operator">,</span><span class="int"> 0</span><span class="operator">,</span> Comm<span class="operator">);</span><span class="comment">
+
+  // Create x and b vectors
+</span>  Epetra_Vector x<span class="operator">(</span>Map<span class="operator">);</span>
+  Epetra_Vector b<span class="operator">(</span>Map<span class="operator">);</span>
+
+  b<span class="operator">.</span>Random<span class="operator">();</span>
+
+  x<span class="operator">.</span>Update<span class="operator">(</span><span class="float">2.0</span><span class="operator">,</span> b<span class="operator">,</span><span class="float"> 0.0</span><span class="operator">);</span><span class="comment"> // x = 2*b
+</span><span class="type">
+  double</span> bnorm<span class="operator">,</span> xnorm<span class="operator">;</span>
+
+  x<span class="operator">.</span>Norm2<span class="operator">(&amp;</span>xnorm<span class="operator">);</span>
+  b<span class="operator">.</span>Norm2<span class="operator">(&amp;</span>bnorm<span class="operator">);</span>
+
+  cout<span class="operator"> &lt;&lt;</span><span class="string"> "2 norm of x = "</span><span class="operator"> &lt;&lt;</span> xnorm<span class="operator"> &lt;&lt;</span> endl<span class="operator">
+       &lt;&lt;</span><span class="string"> "2 norm of b = "</span><span class="operator"> &lt;&lt;</span> bnorm<span class="operator"> &lt;&lt;</span> endl<span class="operator">;</span><span class="flow">
+
+  return</span><span class="int"> 0</span><span class="operator">;
+}</span>
+
+</pre>
+
+
+</body></html>

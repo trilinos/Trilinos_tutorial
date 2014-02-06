@@ -1,0 +1,295 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>C++ code colored by C++2HTML</title>
+<meta name="generator" content="C++2HTML by Jasper Bedaux">
+<!-- To generate your own colored code visit http://www.bedaux.net/cpp2html/ -->
+<style type="text/css">
+.comment { color: #999999; font-style: italic; }
+.pre { color: #000099; }
+.string { color: #009900; }
+.char { color: #009900; }
+.float { color: #996600; }
+.int { color: #999900; }
+.bool { color: #000000; font-weight: bold; }
+.type { color: #FF6633; }
+.flow { color: #FF0000; }
+.keyword { color: #990000; }
+.operator { color: #663300; font-weight: bold; }
+.operator { color: #663300; font-weight: bold; }
+</style>
+</head>
+<body>
+<pre><span class="pre">#include &lt;cstdlib&gt;
+#include &lt;cassert&gt;
+#include &lt;string&gt;
+#include &lt;vector&gt;
+
+#include "Epetra_CrsMatrix.h"
+#include "Epetra_MultiVector.h"
+#include "Epetra_Time.h"
+#include "Epetra_Vector.h"
+#include "Epetra_Version.h"
+
+#ifdef EPETRA_MPI
+#  include "mpi.h"
+#  include "Epetra_MpiComm.h"
+#else
+#  include "Epetra_SerialComm.h"
+#endif
+
+#include "../../aprepro_vhelp.h"
+</span><span class="comment">
+//
+// Compute the eigenvalue of maximum magnitude of the given matrix A,
+// using the power method.
+// 
+// Input arguments:
+//
+// A: The matrix to which to apply the power method.  It's not const
+//   because this method sets its flop counter.
+// niters: Number of iterations of the power method.
+// tolerance: Iterate until the (absolute) residual is strictly less
+//   than tolerance.
+// verbose: Whether or not to print status output to stdout during
+//   iterations.
+//
+// Output argument:
+//
+// lambda: The eigenvalue of maximum magnitude of the matrix A.
+//
+// Return value: An integer error code.  Zero if no error occured,
+//   else nonzero.
+// 
+</span><span class="type">int</span> 
+powerMethod<span class="operator"> (</span><span class="type">double</span><span class="operator"> &amp;</span> lambda<span class="operator">,</span> 
+             Epetra_CrsMatrix<span class="operator">&amp;</span> A<span class="operator">,</span><span class="keyword"> 
+             const</span><span class="type"> int</span> niters<span class="operator">,</span><span class="keyword"> 
+             const</span><span class="type"> double</span> tolerance<span class="operator">,</span><span class="keyword">
+             const</span><span class="type"> bool</span> verbose<span class="operator">);</span><span class="type">
+
+int</span><span class="keyword"> 
+main</span><span class="operator"> (</span><span class="type">int</span> argc<span class="operator">,</span><span class="type"> char</span><span class="operator"> *</span>argv<span class="operator">[])
+{</span><span class="comment">
+  // These "using" statements make the code a bit more concise.
+</span><span class="keyword">  using</span> std<span class="operator">::</span>cout<span class="operator">;</span><span class="keyword">
+  using</span> std<span class="operator">::</span>endl<span class="operator">;</span><span class="type">
+
+  int</span> ierr<span class="operator"> =</span><span class="int"> 0</span><span class="operator">,</span> i<span class="operator">;</span><span class="comment">
+
+  // If Trilinos was built with MPI, initialize MPI, otherwise
+  // initialize the serial "communicator" that stands in for MPI.
+</span><span class="pre">#ifdef EPETRA_MPI
+</span>  MPI_Init<span class="operator"> (&amp;</span>argc<span class="operator">,&amp;</span>argv<span class="operator">);</span>
+  Epetra_MpiComm Comm<span class="operator"> (</span>MPI_COMM_WORLD<span class="operator">);</span><span class="pre">
+#else
+</span>  Epetra_SerialComm Comm<span class="operator">;</span><span class="pre">
+#endif
+</span><span class="keyword">
+  const</span><span class="type"> int</span> MyPID<span class="operator"> =</span> Comm<span class="operator">.</span>MyPID<span class="operator">();</span><span class="keyword">
+  const</span><span class="type"> int</span> NumProc<span class="operator"> =</span> Comm<span class="operator">.</span>NumProc<span class="operator">();</span><span class="comment">
+  // We only allow (MPI) Process 0 to write to stdout.
+</span><span class="keyword">  const</span><span class="type"> bool</span> verbose<span class="operator"> = (</span>MyPID<span class="operator"> ==</span><span class="int"> 0</span><span class="operator">);</span><span class="keyword">
+  const</span><span class="type"> int</span> NumGlobalElements<span class="operator"> =</span><span class="int"> 100</span><span class="operator">;</span><span class="flow">
+
+  if</span><span class="operator"> (</span>verbose<span class="operator">)</span>
+    cout<span class="operator"> &lt;&lt;</span> Epetra_Version<span class="operator">() &lt;&lt;</span> endl<span class="operator"> &lt;&lt;</span> endl<span class="operator">;</span><span class="comment">
+
+  // Asking the Epetra_Comm to print itself is a good test for whether
+  // you are running in an MPI environment.  However, it will print
+  // something on all MPI processes, so you should remove it for a
+  // large-scale parallel run.
+</span>  cout<span class="operator"> &lt;&lt;</span> Comm<span class="operator"> &lt;&lt;</span> endl<span class="operator">;</span><span class="flow">
+
+  if</span><span class="operator"> (</span>NumGlobalElements<span class="operator"> &lt;</span> NumProc<span class="operator">)
+    {</span><span class="flow">
+      if</span><span class="operator"> (</span>verbose<span class="operator">)</span>
+        cout<span class="operator"> &lt;&lt;</span><span class="string"> "numGlobalBlocks = "</span><span class="operator"> &lt;&lt;</span> NumGlobalElements<span class="operator"> 
+             &lt;&lt;</span><span class="string"> " cannot be &lt; number of processors = "</span><span class="operator"> &lt;&lt;</span> NumProc<span class="operator"> &lt;&lt;</span> endl<span class="operator">;</span>
+      std<span class="operator">::</span>exit<span class="operator"> (</span>EXIT_FAILURE<span class="operator">);
+    }</span><span class="comment">
+
+  // Construct a Map that puts approximately the same number of rows
+  // of the matrix A on each processor.
+</span>  Epetra_Map Map<span class="operator"> (</span>NumGlobalElements<span class="operator">,</span><span class="int"> 0</span><span class="operator">,</span> Comm<span class="operator">);</span><span class="comment">
+
+  // Get update list and number of local equations from newly created Map.
+</span><span class="type">  int</span> NumMyElements<span class="operator"> =</span> Map<span class="operator">.</span>NumMyElements<span class="operator">();</span>
+
+  std<span class="operator">::</span>vector<span class="operator">&lt;</span><span class="type">int</span><span class="operator">&gt;</span> MyGlobalElements<span class="operator">(</span>NumMyElements<span class="operator">);</span>
+  Map<span class="operator">.</span>MyGlobalElements<span class="operator">(&amp;</span>MyGlobalElements<span class="operator">[</span><span class="int">0</span><span class="operator">]);</span><span class="comment">
+
+  // NumNz[i] is the number of nonzero elements in row i of the sparse
+  // matrix on this MPI process.  Epetra_CrsMatrix uses this to figure
+  // out how much space to allocate.
+</span>  std<span class="operator">::</span>vector<span class="operator">&lt;</span><span class="type">int</span><span class="operator">&gt;</span> NumNz<span class="operator"> (</span>NumMyElements<span class="operator">);</span><span class="comment">
+
+  // We are building a tridiagonal matrix where each row contains the
+  // nonzero elements (-1 2 -1).  Thus, we need 2 off-diagonal terms,
+  // except for the first and last row of the matrix.
+</span><span class="flow">  for</span><span class="operator"> (</span><span class="type">int</span> i<span class="operator"> =</span><span class="int"> 0</span><span class="operator">;</span> i<span class="operator"> &lt;</span> NumMyElements<span class="operator">; ++</span>i<span class="operator">)</span><span class="flow">
+    if</span><span class="operator"> (</span>MyGlobalElements<span class="operator">[</span>i<span class="operator">] ==</span><span class="int"> 0</span><span class="operator"> ||</span> MyGlobalElements<span class="operator">[</span>i<span class="operator">] ==</span> NumGlobalElements<span class="operator">-</span><span class="int">1</span><span class="operator">)</span>
+      NumNz<span class="operator">[</span>i<span class="operator">] =</span><span class="int"> 2</span><span class="operator">;</span><span class="comment"> // First or last row
+</span><span class="flow">    else</span>
+      NumNz<span class="operator">[</span>i<span class="operator">] =</span><span class="int"> 3</span><span class="operator">;</span><span class="comment"> // Not the (first or last row)
+
+  // Create the Epetra_CrsMatrix.
+</span>  Epetra_CrsMatrix A<span class="operator"> (</span>Copy<span class="operator">,</span> Map<span class="operator">, &amp;</span>NumNz<span class="operator">[</span><span class="int">0</span><span class="operator">]);</span><span class="comment">
+
+  //
+  // Add rows to the sparse matrix one at a time.
+  //
+</span>  std<span class="operator">::</span>vector<span class="operator">&lt;</span><span class="type">double</span><span class="operator">&gt;</span> Values<span class="operator">(</span><span class="int">2</span><span class="operator">);</span>
+  Values<span class="operator">[</span><span class="int">0</span><span class="operator">] = -</span><span class="float">1.0</span><span class="operator">;</span> Values<span class="operator">[</span><span class="int">1</span><span class="operator">] = -</span><span class="float">1.0</span><span class="operator">;</span>
+  std<span class="operator">::</span>vector<span class="operator">&lt;</span><span class="type">int</span><span class="operator">&gt;</span> Indices<span class="operator">(</span><span class="int">2</span><span class="operator">);</span><span class="keyword">
+  const</span><span class="type"> double</span> two<span class="operator"> =</span><span class="float"> 2.0</span><span class="operator">;</span><span class="type">
+  int</span> NumEntries<span class="operator">;</span><span class="flow">
+
+  for</span><span class="operator"> (</span><span class="type">int</span> i<span class="operator"> =</span><span class="int"> 0</span><span class="operator">;</span> i<span class="operator"> &lt;</span> NumMyElements<span class="operator">; ++</span>i<span class="operator">)
+    {</span><span class="flow">
+      if</span><span class="operator"> (</span>MyGlobalElements<span class="operator">[</span>i<span class="operator">] ==</span><span class="int"> 0</span><span class="operator">)
+        {</span><span class="comment"> // The first row of the matrix.
+</span>          Indices<span class="operator">[</span><span class="int">0</span><span class="operator">] =</span><span class="int"> 1</span><span class="operator">;</span>
+          NumEntries<span class="operator"> =</span><span class="int"> 1</span><span class="operator">;
+        }</span><span class="flow">
+      else if</span><span class="operator"> (</span>MyGlobalElements<span class="operator">[</span>i<span class="operator">] ==</span> NumGlobalElements<span class="operator"> -</span><span class="int"> 1</span><span class="operator">)
+        {</span><span class="comment"> // The last row of the matrix.
+</span>          Indices<span class="operator">[</span><span class="int">0</span><span class="operator">] =</span> NumGlobalElements<span class="operator">-</span><span class="int">2</span><span class="operator">;</span>
+          NumEntries<span class="operator"> =</span><span class="int"> 1</span><span class="operator">;
+        }</span><span class="flow">
+      else</span><span class="operator">
+        {</span><span class="comment"> // Any row of the matrix other than the first or last.
+</span>          Indices<span class="operator">[</span><span class="int">0</span><span class="operator">] =</span> MyGlobalElements<span class="operator">[</span>i<span class="operator">]-</span><span class="int">1</span><span class="operator">;</span>
+          Indices<span class="operator">[</span><span class="int">1</span><span class="operator">] =</span> MyGlobalElements<span class="operator">[</span>i<span class="operator">]+</span><span class="int">1</span><span class="operator">;</span>
+          NumEntries<span class="operator"> =</span><span class="int"> 2</span><span class="operator">;
+        }</span>
+      ierr<span class="operator"> =</span> A<span class="operator">.</span>InsertGlobalValues<span class="operator">(</span>MyGlobalElements<span class="operator">[</span>i<span class="operator">],</span> NumEntries<span class="operator">, &amp;</span>Values<span class="operator">[</span><span class="int">0</span><span class="operator">], &amp;</span>Indices<span class="operator">[</span><span class="int">0</span><span class="operator">]);</span>
+      assert<span class="operator"> (</span>ierr<span class="operator">==</span><span class="int">0</span><span class="operator">);</span><span class="comment">
+      // Insert the diagonal entry.
+</span>      ierr<span class="operator"> =</span> A<span class="operator">.</span>InsertGlobalValues<span class="operator">(</span>MyGlobalElements<span class="operator">[</span>i<span class="operator">],</span><span class="int"> 1</span><span class="operator">, &amp;</span>two<span class="operator">, &amp;</span>MyGlobalElements<span class="operator">[</span>i<span class="operator">]);</span>
+      assert<span class="operator">(</span>ierr<span class="operator">==</span><span class="int">0</span><span class="operator">);
+    }</span><span class="comment">
+
+  // Finish up.  We can call FillComplete() with no arguments, because
+  // the matrix is square.
+</span>  ierr<span class="operator"> =</span> A<span class="operator">.</span>FillComplete<span class="operator"> ();</span>
+  assert<span class="operator"> (</span>ierr<span class="operator">==</span><span class="int">0</span><span class="operator">);</span><span class="comment">
+
+  // Parameters for the power method.
+</span><span class="keyword">  const</span><span class="type"> int</span> niters<span class="operator"> =</span> NumGlobalElements<span class="operator">*</span><span class="int">10</span><span class="operator">;</span><span class="keyword">
+  const</span><span class="type"> double</span> tolerance<span class="operator"> =</span><span class="float"> 1.0e-2</span><span class="operator">;</span><span class="comment">
+
+  //
+  // Run the power method.  Keep track of the flop count and the total
+  // elapsed time.
+  //
+</span>  Epetra_Flops counter<span class="operator">;</span>
+  A<span class="operator">.</span>SetFlopCounter<span class="operator">(</span>counter<span class="operator">);</span>
+  Epetra_Time timer<span class="operator">(</span>Comm<span class="operator">);</span><span class="type">
+  double</span> lambda<span class="operator"> =</span><span class="float"> 0.0</span><span class="operator">;</span>
+  ierr<span class="operator"> +=</span> powerMethod<span class="operator"> (</span>lambda<span class="operator">,</span> A<span class="operator">,</span> niters<span class="operator">,</span> tolerance<span class="operator">,</span> verbose<span class="operator">);</span><span class="type">
+  double</span> elapsedTime<span class="operator"> =</span> timer<span class="operator">.</span>ElapsedTime<span class="operator"> ();</span><span class="type">
+  double</span> totalFlops<span class="operator"> =</span>counter<span class="operator">.</span>Flops<span class="operator"> ();</span><span class="comment">
+  // Mflop/s: Million floating-point arithmetic operations per second.
+</span><span class="type">  double</span> Mflop_per_s<span class="operator"> =</span> totalFlops<span class="operator"> /</span> elapsedTime<span class="operator"> /</span><span class="float"> 1000000.0</span><span class="operator">;</span><span class="flow">
+
+  if</span><span class="operator"> (</span>verbose<span class="operator">)</span> 
+    cout<span class="operator"> &lt;&lt;</span> endl<span class="operator"> &lt;&lt;</span> endl<span class="operator"> &lt;&lt;</span><span class="string"> "Total Mflop/s for first solve = "</span><span class="operator"> 
+         &lt;&lt;</span> Mflop_per_s<span class="operator"> &lt;&lt;</span> endl<span class="operator">&lt;&lt;</span> endl<span class="operator">;</span><span class="comment">
+
+  // Increase the first (0,0) diagonal entry of the matrix.
+</span><span class="flow">  if</span><span class="operator"> (</span>verbose<span class="operator">)</span> 
+    cout<span class="operator"> &lt;&lt;</span> endl<span class="operator"> &lt;&lt;</span><span class="string"> "Increasing magnitude of first diagonal term, solving again"</span><span class="operator">
+         &lt;&lt;</span> endl<span class="operator"> &lt;&lt;</span> endl<span class="operator"> &lt;&lt;</span> endl<span class="operator">;</span><span class="flow">
+
+  if</span><span class="operator"> (</span>A<span class="operator">.</span>MyGlobalRow<span class="operator"> (</span><span class="int">0</span><span class="operator">)) {</span><span class="type">
+    int</span> numvals<span class="operator"> =</span> A<span class="operator">.</span>NumGlobalEntries<span class="operator"> (</span><span class="int">0</span><span class="operator">);</span>
+    std<span class="operator">::</span>vector<span class="operator">&lt;</span><span class="type">double</span><span class="operator">&gt;</span> Rowvals<span class="operator"> (</span>numvals<span class="operator">);</span>
+    std<span class="operator">::</span>vector<span class="operator">&lt;</span><span class="type">int</span><span class="operator">&gt;</span> Rowinds<span class="operator"> (</span>numvals<span class="operator">);</span>
+    A<span class="operator">.</span>ExtractGlobalRowCopy<span class="operator"> (</span><span class="int">0</span><span class="operator">,</span> numvals<span class="operator">,</span> numvals<span class="operator">, &amp;</span>Rowvals<span class="operator">[</span><span class="int">0</span><span class="operator">], &amp;</span>Rowinds<span class="operator">[</span><span class="int">0</span><span class="operator">]);</span><span class="comment"> // Get A(0,0)
+</span><span class="flow">    for</span><span class="operator"> (</span><span class="type">int</span> i<span class="operator"> =</span><span class="int"> 0</span><span class="operator">;</span> i<span class="operator"> &lt;</span> numvals<span class="operator">; ++</span>i<span class="operator">)</span><span class="flow"> 
+      if</span><span class="operator"> (</span>Rowinds<span class="operator">[</span>i<span class="operator">] ==</span><span class="int"> 0</span><span class="operator">)</span> 
+        Rowvals<span class="operator">[</span>i<span class="operator">] *=</span><span class="float"> 10.0</span><span class="operator">;</span>
+
+    A<span class="operator">.</span>ReplaceGlobalValues<span class="operator"> (</span><span class="int">0</span><span class="operator">,</span> numvals<span class="operator">, &amp;</span>Rowvals<span class="operator">[</span><span class="int">0</span><span class="operator">], &amp;</span>Rowinds<span class="operator">[</span><span class="int">0</span><span class="operator">]);
+  }</span><span class="comment">
+
+  //
+  // Run the power method again.  Keep track of the flop count and the
+  // total elapsed time.
+  //
+</span>  lambda<span class="operator"> =</span><span class="float"> 0.0</span><span class="operator">;</span>
+  timer<span class="operator">.</span>ResetStartTime<span class="operator">();</span>
+  counter<span class="operator">.</span>ResetFlops<span class="operator">();</span>
+  ierr<span class="operator"> +=</span> powerMethod<span class="operator"> (</span>lambda<span class="operator">,</span> A<span class="operator">,</span> niters<span class="operator">,</span> tolerance<span class="operator">,</span> verbose<span class="operator">);</span>
+  elapsedTime<span class="operator"> =</span> timer<span class="operator">.</span>ElapsedTime<span class="operator">();</span>
+  totalFlops<span class="operator"> =</span> counter<span class="operator">.</span>Flops<span class="operator">();</span>
+  Mflop_per_s<span class="operator"> =</span> totalFlops<span class="operator"> /</span> elapsedTime<span class="operator"> /</span><span class="float"> 1000000.0</span><span class="operator">;</span><span class="flow">
+
+  if</span><span class="operator"> (</span>verbose<span class="operator">)</span> 
+    cout<span class="operator"> &lt;&lt;</span> endl<span class="operator"> &lt;&lt;</span> endl<span class="operator"> &lt;&lt;</span><span class="string"> "Total Mflop/s for second solve = "</span><span class="operator"> 
+         &lt;&lt;</span> Mflop_per_s<span class="operator"> &lt;&lt;</span> endl<span class="operator"> &lt;&lt;</span> endl<span class="operator">;</span><span class="pre">
+
+#ifdef EPETRA_MPI
+</span>  MPI_Finalize<span class="operator">() ;</span><span class="pre">
+#endif
+</span><span class="flow">
+  return</span> ierr<span class="operator">;
+}</span><span class="type">
+
+
+int</span>
+powerMethod<span class="operator"> (</span><span class="type">double</span><span class="operator"> &amp;</span> lambda<span class="operator">,</span> 
+             Epetra_CrsMatrix<span class="operator">&amp;</span> A<span class="operator">,</span><span class="keyword"> 
+             const</span><span class="type"> int</span> niters<span class="operator">,</span><span class="keyword"> 
+             const</span><span class="type"> double</span> tolerance<span class="operator">,</span><span class="keyword">
+             const</span><span class="type"> bool</span> verbose<span class="operator">)
+{</span><span class="comment">
+  // In the power iteration, z = A*q.  Thus, q must be in the domain
+  // of A, and z must be in the range of A.  The residual vector is of
+  // course in the range of A.
+</span>  Epetra_Vector q<span class="operator"> (</span>A<span class="operator">.</span>OperatorDomainMap<span class="operator"> ());</span>
+  Epetra_Vector z<span class="operator"> (</span>A<span class="operator">.</span>OperatorRangeMap<span class="operator"> ());</span>
+  Epetra_Vector resid<span class="operator"> (</span>A<span class="operator">.</span>OperatorRangeMap<span class="operator"> ());</span>
+
+  Epetra_Flops<span class="operator">*</span> counter<span class="operator"> =</span> A<span class="operator">.</span>GetFlopCounter<span class="operator">();</span><span class="flow">
+  if</span><span class="operator"> (</span>counter<span class="operator"> !=</span><span class="int"> 0</span><span class="operator">) {</span>
+    q<span class="operator">.</span>SetFlopCounter<span class="operator">(</span>A<span class="operator">);</span>
+    z<span class="operator">.</span>SetFlopCounter<span class="operator">(</span>A<span class="operator">);</span>
+    resid<span class="operator">.</span>SetFlopCounter<span class="operator">(</span>A<span class="operator">);
+  }</span><span class="comment">
+
+  // Initialize the starting vector z with random data.
+</span>  z<span class="operator">.</span>Random<span class="operator">();</span><span class="type">
+
+  double</span> normz<span class="operator">,</span> residual<span class="operator">;</span><span class="type">
+  int</span> ierr<span class="operator"> =</span><span class="int"> 1</span><span class="operator">;</span><span class="flow">
+  for</span><span class="operator"> (</span><span class="type">int</span> iter<span class="operator"> =</span><span class="int"> 0</span><span class="operator">;</span> iter<span class="operator"> &lt;</span> niters<span class="operator">; ++</span>iter<span class="operator">)
+    {</span>
+      z<span class="operator">.</span>Norm2<span class="operator"> (&amp;</span>normz<span class="operator">);</span><span class="comment">        // normz  := ||z||_2
+</span>      q<span class="operator">.</span>Scale<span class="operator"> (</span><span class="float">1.0</span><span class="operator">/</span>normz<span class="operator">,</span> z<span class="operator">);</span><span class="comment">  // q      := z / normz
+</span>      A<span class="operator">.</span>Multiply<span class="operator">(</span><span class="bool">false</span><span class="operator">,</span> q<span class="operator">,</span> z<span class="operator">);</span><span class="comment"> // z      := A * q
+</span>      q<span class="operator">.</span>Dot<span class="operator">(</span>z<span class="operator">, &amp;</span>lambda<span class="operator">);</span><span class="comment">       // lambda := dot (q, z)
+
+      // Compute the residual vector and display status output every
+      // 100 iterations, or if we have reached the maximum number of
+      // iterations.
+</span><span class="flow">      if</span><span class="operator"> (</span>iter<span class="operator"> %</span><span class="int"> 100</span><span class="operator"> ==</span><span class="int"> 0</span><span class="operator"> ||</span> iter<span class="operator"> +</span><span class="int"> 1</span><span class="operator"> ==</span> niters<span class="operator">)
+        {</span>
+          resid<span class="operator">.</span>Update<span class="operator"> (</span><span class="float">1.0</span><span class="operator">,</span> z<span class="operator">, -</span>lambda<span class="operator">,</span> q<span class="operator">,</span><span class="float"> 0.0</span><span class="operator">);</span><span class="comment"> // resid := A*q - lambda*q
+</span>          resid<span class="operator">.</span>Norm2<span class="operator"> (&amp;</span>residual<span class="operator">);</span><span class="comment">                // residual := ||resid||_2
+</span><span class="flow">          if</span><span class="operator"> (</span>verbose<span class="operator">)</span> 
+            cout<span class="operator"> &lt;&lt;</span><span class="string"> "Iter = "</span><span class="operator"> &lt;&lt;</span> iter<span class="operator"> &lt;&lt;</span><span class="string"> "  Lambda = "</span><span class="operator"> &lt;&lt;</span> lambda<span class="operator"> 
+                 &lt;&lt;</span><span class="string"> "  Residual of A*q - lambda*q = "</span><span class="operator"> &lt;&lt;</span> residual<span class="operator"> &lt;&lt;</span> endl<span class="operator">;
+        }</span><span class="flow"> 
+      if</span><span class="operator"> (</span>residual<span class="operator"> &lt;</span> tolerance<span class="operator">) {</span><span class="comment"> // We've converged!
+</span>        ierr<span class="operator"> =</span><span class="int"> 0</span><span class="operator">;</span><span class="flow">
+        break</span><span class="operator">;
+      }
+    }</span><span class="flow">
+  return</span> ierr<span class="operator">;
+}</span>
+</pre>
+
+
+</body></html>

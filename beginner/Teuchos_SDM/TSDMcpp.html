@@ -1,0 +1,104 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>C++ code colored by C++2HTML</title>
+<meta name="generator" content="C++2HTML by Jasper Bedaux">
+<!-- To generate your own colored code visit http://www.bedaux.net/cpp2html/ -->
+<style type="text/css">
+.comment { color: #999999; font-style: italic; }
+.pre { color: #000099; }
+.string { color: #009900; }
+.char { color: #009900; }
+.float { color: #996600; }
+.int { color: #999900; }
+.bool { color: #000000; font-weight: bold; }
+.type { color: #FF6633; }
+.flow { color: #FF0000; }
+.keyword { color: #990000; }
+.operator { color: #663300; font-weight: bold; }
+.operator { color: #663300; font-weight: bold; }
+</style>
+</head>
+<body>
+<pre><span class="pre">#include "Teuchos_SerialDenseMatrix.hpp"
+#include "Teuchos_Version.hpp"
+
+
+#include "../../aprepro_vhelp.h"
+</span><span class="type">
+int</span><span class="keyword"> main</span><span class="operator">(</span><span class="type">int</span> argc<span class="operator">,</span><span class="type"> char</span><span class="operator">*</span> argv<span class="operator">[])
+{</span>
+
+  std<span class="operator">::</span>cout<span class="operator"> &lt;&lt;</span> Teuchos<span class="operator">::</span>Teuchos_Version<span class="operator">() &lt;&lt;</span> std<span class="operator">::</span>endl<span class="operator"> &lt;&lt;</span> std<span class="operator">::</span>endl<span class="operator">;</span><span class="comment">
+
+  // Creating a double-precision matrix can be done in several ways:
+  // Create an empty matrix with no dimension
+</span>  Teuchos<span class="operator">::</span>SerialDenseMatrix<span class="operator">&lt;</span><span class="type">int</span><span class="operator">,</span><span class="type">double</span><span class="operator">&gt;</span> Empty_Matrix<span class="operator">;</span><span class="comment">
+  // Create an empty 3x4 matrix
+</span>  Teuchos<span class="operator">::</span>SerialDenseMatrix<span class="operator">&lt;</span><span class="type">int</span><span class="operator">,</span><span class="type">double</span><span class="operator">&gt;</span> My_Matrix<span class="operator">(</span><span class="int"> 3</span><span class="operator">,</span><span class="int"> 4</span><span class="operator"> );</span><span class="comment">
+  // Basic copy of My_Matrix
+</span>  Teuchos<span class="operator">::</span>SerialDenseMatrix<span class="operator">&lt;</span><span class="type">int</span><span class="operator">,</span><span class="type">double</span><span class="operator">&gt;</span> My_Copy1<span class="operator">(</span> My_Matrix<span class="operator"> ),</span><span class="comment">
+    // (Deep) Copy of principle 3x3 submatrix of My_Matrix
+</span>    My_Copy2<span class="operator">(</span> Teuchos<span class="operator">::</span>Copy<span class="operator">,</span> My_Matrix<span class="operator">,</span><span class="int"> 3</span><span class="operator">,</span><span class="int"> 3</span><span class="operator"> ),</span><span class="comment">
+    // (Shallow) Copy of 2x3 submatrix of My_Matrix
+</span>    My_Copy3<span class="operator">(</span> Teuchos<span class="operator">::</span>View<span class="operator">,</span> My_Matrix<span class="operator">,</span><span class="int"> 2</span><span class="operator">,</span><span class="int"> 3</span><span class="operator">,</span><span class="int"> 1</span><span class="operator">,</span><span class="int"> 1</span><span class="operator"> );</span><span class="comment">
+
+  // The matrix dimensions and strided storage information can be obtained:
+</span><span class="type">  int</span> rows<span class="operator">,</span> cols<span class="operator">,</span> stride<span class="operator">;</span>
+  rows<span class="operator"> =</span> My_Copy3<span class="operator">.</span>numRows<span class="operator">();</span><span class="comment">  // number of rows
+</span>  cols<span class="operator"> =</span> My_Copy3<span class="operator">.</span>numCols<span class="operator">();</span><span class="comment">  // number of columns
+</span>  stride<span class="operator"> =</span> My_Copy3<span class="operator">.</span>stride<span class="operator">();</span><span class="comment"> // storage stride
+
+  // Matrices can change dimension:
+</span>  Empty_Matrix<span class="operator">.</span>shape<span class="operator">(</span><span class="int"> 3</span><span class="operator">,</span><span class="int"> 3</span><span class="operator"> );</span><span class="comment">      // size non-dimensional matrices
+</span>  My_Matrix<span class="operator">.</span>reshape<span class="operator">(</span><span class="int"> 3</span><span class="operator">,</span><span class="int"> 3</span><span class="operator"> );</span><span class="comment">       // resize matrices and save values
+
+  // Filling matrices with numbers can be done in several ways:
+</span>  My_Matrix<span class="operator">.</span>random<span class="operator">();</span><span class="comment">             // random numbers
+</span>  My_Copy1<span class="operator">.</span>putScalar<span class="operator">(</span><span class="float"> 1.0</span><span class="operator"> );</span><span class="comment">      // every entry is 1.0
+</span>  My_Copy2<span class="operator">(</span><span class="int">1</span><span class="operator">,</span><span class="int">1</span><span class="operator">) =</span><span class="float"> 10.0</span><span class="operator">;</span><span class="comment">           // individual element access
+</span>  Empty_Matrix<span class="operator"> =</span> My_Matrix<span class="operator">;</span><span class="comment">       // copy My_Matrix to Empty_Matrix
+
+  // Basic matrix arithmetic can be performed:
+</span>  Teuchos<span class="operator">::</span>SerialDenseMatrix<span class="operator">&lt;</span><span class="type">int</span><span class="operator">,</span><span class="type">double</span><span class="operator">&gt;</span> My_Prod<span class="operator">(</span><span class="int"> 3</span><span class="operator">,</span><span class="int"> 2</span><span class="operator"> );</span><span class="comment">
+
+  // Matrix multiplication ( My_Prod = 1.0*My_Matrix*My_Copy^T )
+</span>  My_Prod<span class="operator">.</span>multiply<span class="operator">(</span> Teuchos<span class="operator">::</span>NO_TRANS<span class="operator">,</span> Teuchos<span class="operator">::</span>TRANS<span class="operator">,</span><span class="float">
+                    1.0</span><span class="operator">,</span> My_Matrix<span class="operator">,</span> My_Copy3<span class="operator">,</span><span class="float"> 0.0</span><span class="operator"> );</span>
+  My_Copy2<span class="operator"> +=</span> My_Matrix<span class="operator">;</span><span class="comment">         // Matrix addition
+</span>  My_Copy2<span class="operator">.</span>scale<span class="operator">(</span><span class="float"> 0.5</span><span class="operator"> );</span><span class="comment">         // Matrix scaling
+
+  // The pointer to the array of matrix values can be obtained:
+</span><span class="type">  double</span><span class="operator"> *</span>My_Array<span class="operator">=</span><span class="int">0</span><span class="operator">, *</span>My_Column<span class="operator">=</span><span class="int">0</span><span class="operator">;</span>
+  My_Array<span class="operator"> =</span> My_Matrix<span class="operator">.</span>values<span class="operator">();</span><span class="comment">   // pointer to matrix values
+</span>  My_Column<span class="operator"> =</span> My_Matrix<span class="operator">[</span><span class="int">2</span><span class="operator">];</span><span class="comment">        // pointer to third column values
+
+  // The norm of a matrix can be computed:
+</span><span class="type">  double</span> norm_one<span class="operator">,</span> norm_inf<span class="operator">,</span> norm_fro<span class="operator">;</span>
+  norm_one<span class="operator"> =</span> My_Matrix<span class="operator">.</span>normOne<span class="operator">();</span><span class="comment">        // one norm
+</span>  norm_inf<span class="operator"> =</span> My_Matrix<span class="operator">.</span>normInf<span class="operator">();</span><span class="comment">        // infinity norm
+</span>  norm_fro<span class="operator"> =</span> My_Matrix<span class="operator">.</span>normFrobenius<span class="operator">();</span><span class="comment">  // frobenius norm
+
+  // Matrices can be compared:
+  // Check if the matrices are equal in dimension and values
+</span><span class="flow">  if</span><span class="operator"> (</span>Empty_Matrix<span class="operator"> ==</span> My_Matrix<span class="operator">) {</span>
+    std<span class="operator">::</span>cout<span class="operator">&lt;&lt;</span><span class="string"> "The matrices are the same!"</span><span class="operator"> &lt;&lt;</span>std<span class="operator">::</span>endl<span class="operator">;
+  }</span><span class="comment">
+
+  // Check if the matrices are different in dimension or values
+</span><span class="flow">  if</span><span class="operator"> (</span>My_Copy2<span class="operator"> !=</span> My_Matrix<span class="operator">) {</span>
+    std<span class="operator">::</span>cout<span class="operator">&lt;&lt;</span><span class="string"> "The matrices are different!"</span><span class="operator"> &lt;&lt;</span>std<span class="operator">::</span>endl<span class="operator">;
+  }</span><span class="comment">
+
+  // A matrix can be sent to the output stream:
+</span>  std<span class="operator">::</span>cout<span class="operator">&lt;&lt;</span> My_Matrix<span class="operator"> &lt;&lt;</span> std<span class="operator">::</span>endl<span class="operator">;</span><span class="flow">
+
+  return</span><span class="int"> 0</span><span class="operator">;
+}</span>
+
+
+
+</pre>
+
+
+</body></html>

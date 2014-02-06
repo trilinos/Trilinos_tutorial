@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<div id="stuff" style="hight:2000px;width:700px">
+<h1>TeuchosPL</h1>
+<hr>
+
+<h2>Lesson Topics</h2>
+
+<p>This lesson explains how to use the Teuchos::ParameterList class to set and get parameters for Trilinos solvers.</p>
+
+<h2>What is a ParameterList?</h2>
+
+<p>The ParameterList class is a key/value database. The keys are strings (stored as std::string), and the values may have any desired type. Different values in a ParameterList may have different types. ParameterList instances may even be nested: a ParameterList can be a value in a ParameterList). Since both numerical algorithms and software have a natural hierarchical organization, this nesting feature makes it easy to configure a whole solver software stack using a single ParameterList.</p>
+
+<p>If you're more familiar with PETSc than Trilinos, it might help to compare how Trilinos uses ParameterList to how PETSc passing parameters to solvers as command-line arguments. While ParameterList by itself is an arbitrary key/value store that you may use for your own purposes, Trilinos tends to use it as a way to pass configuration parameters in and out of nested numerical algorithms.</p>
+
+<h2>Details</h2>
+
+<h3>Validation</h3>
+
+<p>It is possible to associate a "validator" function to any key/value pair in a ParameterList. When you or another user sets the value for that key, the validator gets called. It checks whether the value is "valid" (whatever that means in context), and throws an exception if it is not. Some validators do data format conversion as well. For example, there is a validator for converting a string to an enum value.</p>
+
+<h3>Serialization</h3>
+
+<p>ParameterList instances can be written ("serialized") to a human-readable XML file, and read in again from an XML file. This serialization capability is useful for getting reproducible results from Trilinos solvers, when a ParameterList is being used as an input deck. However, ParameterList may be used as a general data container as well as an input deck. In particular, it can hold some types of data that ParameterList does not know how to serialize. It may even hold types that do not make sense to serialize, like raw memory addresses. ParameterList will do its best, but you should be aware that using a raw memory address read in from an XML file probably does not make sense. You can see what happens to a pointer (in this case, an RCP to an Array) in the example below.</p>
+
+<p>ParameterList does know how to serialize basic data types like integers, floating-point numbers, and strings, as well as a few other types. You can also teach ParameterList how to serialize other data types by writing your own serialization module for them.</p>
+
+<p>This is a WebTrilinos demo and you don't have access to files on the web server, so we can't easily demonstrate the serialization capability here. However, we encourage you to explore the ParameterList examples and tests in the Teuchos package.</p>
+
+<h2>Example Code</h2>
+
+<p>The raw source code can be found <a href="./Teuchos_PL.cpp">here</a>.</p>
+
+<IFRAME src="./TPLcpp.html" width=775px height=650px/>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,154 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>C++ code colored by C++2HTML</title>
+<meta name="generator" content="C++2HTML by Jasper Bedaux">
+<!-- To generate your own colored code visit http://www.bedaux.net/cpp2html/ -->
+<style type="text/css">
+.comment { color: #999999; font-style: italic; }
+.pre { color: #000099; }
+.string { color: #009900; }
+.char { color: #009900; }
+.float { color: #996600; }
+.int { color: #999900; }
+.bool { color: #000000; font-weight: bold; }
+.type { color: #FF6633; }
+.flow { color: #FF0000; }
+.keyword { color: #990000; }
+.operator { color: #663300; font-weight: bold; }
+.operator { color: #663300; font-weight: bold; }
+</style>
+</head>
+<body>
+<pre><span class="comment">// Use of ML as a preconditioner.  Set some non-default options.
+</span><span class="pre">
+#include "Epetra_ConfigDefs.h"
+#ifdef HAVE_MPI
+#include "mpi.h"
+#include "Epetra_MpiComm.h"
+#else
+#include "Epetra_SerialComm.h"
+#endif
+#include "Epetra_Map.h"
+#include "Epetra_Vector.h"
+#include "Epetra_RowMatrix.h"
+#include "Epetra_CrsMatrix.h"
+#include "Epetra_LinearProblem.h"
+#include "Epetra_Time.h"
+#include "AztecOO.h"
+
+#include "../../aprepro_vhelp.h"
+
+#include "Teuchos_ParameterList.hpp"
+</span><span class="comment">
+// includes required by ML
+</span><span class="pre">#include "ml_epetra_preconditioner.h"
+
+#include "Trilinos_Util_CrsMatrixGallery.h"
+</span><span class="keyword">
+using namespace</span> Teuchos<span class="operator">;</span><span class="keyword">
+using namespace</span> Trilinos_Util<span class="operator">;</span><span class="pre">
+
+#include &lt;iostream&gt;
+</span><span class="type">
+int</span><span class="keyword"> main</span><span class="operator">(</span><span class="type">int</span> argc<span class="operator">,</span><span class="type"> char</span><span class="operator"> *</span>argv<span class="operator">[])
+{</span><span class="pre">
+
+#ifdef EPETRA_MPI
+</span>  MPI_Init<span class="operator">(&amp;</span>argc<span class="operator">,&amp;</span>argv<span class="operator">);</span>
+  Epetra_MpiComm Comm<span class="operator">(</span>MPI_COMM_WORLD<span class="operator">);</span><span class="pre">
+#else
+</span>  Epetra_SerialComm Comm<span class="operator">;</span><span class="pre">
+
+#endif
+</span>
+  Epetra_Time Time<span class="operator">(</span>Comm<span class="operator">);</span><span class="comment">
+
+  // initialize an Gallery object
+</span>  CrsMatrixGallery Gallery<span class="operator">(</span><span class="string">"laplace_3d"</span><span class="operator">,</span> Comm<span class="operator">);</span>
+
+  Gallery<span class="operator">.</span>Set<span class="operator">(</span><span class="string">"problem_size"</span><span class="operator">,</span><span class="int"> 1000</span><span class="operator">);</span><span class="comment">
+
+  // retrieve pointers to matrix and linear problem
+</span>  Epetra_RowMatrix<span class="operator"> *</span> A<span class="operator"> =</span> Gallery<span class="operator">.</span>GetMatrix<span class="operator">();</span>
+
+  Epetra_LinearProblem<span class="operator"> *</span> Problem<span class="operator"> =</span> Gallery<span class="operator">.</span>GetLinearProblem<span class="operator">();</span><span class="comment">
+
+  // Construct a solver object for this problem
+</span>  AztecOO solver<span class="operator">(*</span>Problem<span class="operator">);</span>
+
+  Teuchos<span class="operator">::</span>ParameterList MLList<span class="operator">;</span><span class="comment">
+  //set multigrid defaults based on problem type
+  //  SA is appropriate for Laplace-like systems
+  //  NSSA is appropriate for nonsymmetric problems such as convection-diffusion
+</span>  ML_Epetra<span class="operator">::</span>SetDefaults<span class="operator">(</span><span class="string">"SA"</span><span class="operator">,</span>MLList<span class="operator">);</span><span class="comment">
+
+  // output level, 0 being silent and 10 verbose
+</span>  MLList<span class="operator">.</span>set<span class="operator">(</span><span class="string">"ML output"</span><span class="operator">,</span><span class="int"> 10</span><span class="operator">);</span><span class="comment">
+
+  // maximum number of levels possible
+</span>  MLList<span class="operator">.</span>set<span class="operator">(</span><span class="string">"max levels"</span><span class="operator">,</span><span class="int">5</span><span class="operator">);</span><span class="comment">
+
+  //common smoother options: Chebyshev, Gauss-Seidel, symmetric Gauss-Seidel, Jacobi, ILU, IC
+</span>  MLList<span class="operator">.</span>set<span class="operator">(</span><span class="string">"smoother: type"</span><span class="operator">,</span><span class="string">"Chebyshev"</span><span class="operator">);</span>
+  MLList<span class="operator">.</span>set<span class="operator">(</span><span class="string">"smoother: sweeps"</span><span class="operator">,</span><span class="int">2</span><span class="operator">);</span><span class="comment">
+
+  //set a different smoother on the first coarse level (finest level = 0)
+</span>  MLList<span class="operator">.</span>set<span class="operator">(</span><span class="string">"smoother: type (level 1)"</span><span class="operator">,</span><span class="string">"symmetric Gauss-Seidel"</span><span class="operator">);</span>
+  MLList<span class="operator">.</span>set<span class="operator">(</span><span class="string">"smoother: sweeps (level 1)"</span><span class="operator">,</span><span class="int">4</span><span class="operator">);</span><span class="comment">
+
+  // use both pre and post smoothing
+</span>  MLList<span class="operator">.</span>set<span class="operator">(</span><span class="string">"smoother: pre or post"</span><span class="operator">,</span><span class="string"> "both"</span><span class="operator">);</span><span class="comment">
+
+  //coarsest level solve.  One can use any smoother here, as well.
+</span>  MLList<span class="operator">.</span>set<span class="operator">(</span><span class="string">"coarse: type"</span><span class="operator">,</span><span class="string">"Amesos-KLU"</span><span class="operator">);</span><span class="comment">
+
+  // coarsening options:  Uncoupled, MIS, Uncoupled-MIS (uncoupled on the finer grids, then switch to MIS)
+</span>  MLList<span class="operator">.</span>set<span class="operator">(</span><span class="string">"aggregation: type"</span><span class="operator">,</span><span class="string"> "Uncoupled"</span><span class="operator">);</span><span class="comment">
+
+  // create the preconditioner object based on options in MLList and compute hierarchy
+</span>  ML_Epetra<span class="operator">::</span>MultiLevelPreconditioner<span class="operator"> *</span> MLPrec<span class="operator"> =</span><span class="keyword"> new</span> ML_Epetra<span class="operator">::</span>MultiLevelPreconditioner<span class="operator">(*</span>A<span class="operator">,</span> MLList<span class="operator">);</span><span class="comment">
+
+  // tell AztecOO to use this preconditioner, then solve
+</span>  solver<span class="operator">.</span>SetPrecOperator<span class="operator">(</span>MLPrec<span class="operator">);</span>
+
+  solver<span class="operator">.</span>SetAztecOption<span class="operator">(</span>AZ_solver<span class="operator">,</span> AZ_cg<span class="operator">);</span>
+  solver<span class="operator">.</span>SetAztecOption<span class="operator">(</span>AZ_output<span class="operator">,</span><span class="int"> 1</span><span class="operator">);</span><span class="type">
+
+  int</span> Niters<span class="operator"> =</span><span class="int"> 500</span><span class="operator">;</span>
+  solver<span class="operator">.</span>Iterate<span class="operator">(</span>Niters<span class="operator">,</span><span class="float"> 1e-12</span><span class="operator">);</span><span class="comment">
+
+  // print out some information about the preconditioner
+</span><span class="flow">  if</span><span class="operator">(</span> Comm<span class="operator">.</span>MyPID<span class="operator">() ==</span><span class="int"> 0</span><span class="operator"> )</span> cout<span class="operator"> &lt;&lt;</span> MLPrec<span class="operator">-&gt;</span>GetOutputList<span class="operator">();</span><span class="keyword">
+
+  delete</span> MLPrec<span class="operator">;</span><span class="comment">
+
+  // compute the real residual
+</span><span class="type">
+  double</span> residual<span class="operator">,</span> diff<span class="operator">;</span>
+
+  Gallery<span class="operator">.</span>ComputeResidual<span class="operator">(&amp;</span>residual<span class="operator">);</span>
+  Gallery<span class="operator">.</span>ComputeDiffBetweenStartingAndExactSolutions<span class="operator">(&amp;</span>diff<span class="operator">);</span><span class="flow">
+
+  if</span><span class="operator">(</span> Comm<span class="operator">.</span>MyPID<span class="operator">()==</span><span class="int">0</span><span class="operator"> ) {</span>
+
+    cout<span class="operator"> &lt;&lt;</span><span class="string"> "||b-Ax||_2 = "</span><span class="operator"> &lt;&lt;</span> residual<span class="operator"> &lt;&lt;</span> endl<span class="operator">;</span>
+    cout<span class="operator"> &lt;&lt;</span><span class="string"> "||x_exact - x||_2 = "</span><span class="operator"> &lt;&lt;</span> diff<span class="operator"> &lt;&lt;</span> endl<span class="operator">;</span>
+
+    cout<span class="operator"> &lt;&lt;</span><span class="string"> "Total Time = "</span><span class="operator"> &lt;&lt;</span> Time<span class="operator">.</span>ElapsedTime<span class="operator">() &lt;&lt;</span> endl<span class="operator">;
+  }</span><span class="flow">
+
+  if</span><span class="operator"> (</span>residual<span class="operator"> &gt;</span><span class="float"> 1e-5</span><span class="operator">)</span>
+
+    exit<span class="operator">(</span>EXIT_FAILURE<span class="operator">);</span><span class="pre">
+#ifdef EPETRA_MPI
+</span>  MPI_Finalize<span class="operator">() ;</span><span class="pre">
+#endif
+</span><span class="flow">  return</span><span class="operator">(</span>EXIT_SUCCESS<span class="operator">);
+}</span>
+
+
+</pre>
+
+
+</body></html>

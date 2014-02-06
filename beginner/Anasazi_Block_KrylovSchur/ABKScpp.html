@@ -1,0 +1,578 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>C++ code colored by C++2HTML</title>
+<meta name="generator" content="C++2HTML by Jasper Bedaux">
+<!-- To generate your own colored code visit http://www.bedaux.net/cpp2html/ -->
+<style type="text/css">
+.comment { color: #999999; font-style: italic; }
+.pre { color: #000099; }
+.string { color: #009900; }
+.char { color: #009900; }
+.float { color: #996600; }
+.int { color: #999900; }
+.bool { color: #000000; font-weight: bold; }
+.type { color: #FF6633; }
+.flow { color: #FF0000; }
+.keyword { color: #990000; }
+.operator { color: #663300; font-weight: bold; }
+.operator { color: #663300; font-weight: bold; }
+</style>
+</head>
+<body>
+<pre><span class="comment">// This example shows how to use the block Krylov-Schur method to
+// compute a few of the largest singular values (sigma) and
+// corresponding right singular vectors (v) for the matrix A by
+// solving the symmetric problem:
+//
+//                  (A^T * (A * v) = sigma * v
+//
+// where A is an m by n real matrix that is derived from the simplest
+// finite difference discretization of the 2-dimensional kernel
+// K(s,t)dt, where
+//
+//                  K(s,t) = s(t-1)   if 0 &lt;= s &lt;= t &lt;= 1
+//                           t(s-1)   if 0 &lt;= t &lt;= s &lt;= 1
+//
+// NOTE:  This example came from the ARPACK SVD driver dsvd.f
+//
+// The main solver parameters are the number of singular values to
+// compute (numSingularValues), and the number of starting vectors
+// (blockSize).  The implementation of getParameterList() below
+// includes other parameters, like the iteration tolerance and the
+// maximum number of restart cycles.
+//
+</span><span class="pre">#include "AnasaziBlockKrylovSchurSolMgr.hpp"
+#include "AnasaziBasicEigenproblem.hpp"
+#include "AnasaziConfigDefs.hpp"
+#include "AnasaziEpetraAdapter.hpp"
+
+#include "Epetra_CrsMatrix.h"
+</span><span class="comment">
+// Include the appropriate communicator include files based on whether
+// or not Trilinos was built with MPI.
+</span><span class="pre">#ifdef EPETRA_MPI
+#  include "Epetra_MpiComm.h"
+#  include &lt;mpi.h&gt;
+#else
+#  include "Epetra_SerialComm.h"
+#endif
+#include "Epetra_Map.h"
+
+#include "../../aprepro_vhelp.h"
+</span><span class="comment">//
+// Use Block Krylov-Schur iteration on A^T (A x) = (sigma)^2 x to
+// compute the approximate SVD of A.
+//
+// Inputs:
+//
+// A: The operator A for which to compute the SVD.
+// startingVector: One or more starting vectors for the iteration.
+// numSingularValues: Number of singular values to compute.
+//
+// Outputs:
+//
+// 1. Approximate eigenvalues of A^T A.
+// 2. Approximate eigenvectors of A^T A.
+//
+// Anasazi stores the eigenvalues of a real matrix as pairs of real
+// values, using the Value struct.  Our operator A^T * A is symmetric,
+// so the eigenvalues should all be real.  However, storing
+// eigenvalues as (real, imaginary) pairs allows us to solve
+// nonsymmetric problems as well.
+//
+</span>std<span class="operator">::</span>pair<span class="operator">&lt;</span> std<span class="operator">::</span>vector<span class="operator">&lt;</span>Anasazi<span class="operator">::</span>Value<span class="operator">&lt;</span><span class="type">double</span><span class="operator">&gt; &gt;,</span> Teuchos<span class="operator">::</span>RCP<span class="operator">&lt;</span>Epetra_MultiVector<span class="operator">&gt; &gt;</span>
+solve<span class="operator"> (</span><span class="keyword">const</span> Teuchos<span class="operator">::</span>RCP<span class="operator">&lt;</span>Epetra_Operator<span class="operator">&gt;&amp;</span> A<span class="operator">,</span><span class="keyword"> 
+       const</span> Teuchos<span class="operator">::</span>RCP<span class="operator">&lt;</span>Epetra_MultiVector<span class="operator">&gt;&amp;</span> startingVector<span class="operator">,</span><span class="keyword">
+       const</span><span class="type"> int</span> numSingularValues<span class="operator">);</span><span class="comment">
+
+//
+// Return a read-and-write view of V as an Anasazi::MultiVec&lt;double&gt;.
+// We use this method in the solve() routine below.
+//
+</span>Teuchos<span class="operator">::</span>RCP<span class="operator">&lt;</span>Anasazi<span class="operator">::</span>MultiVec<span class="operator">&lt;</span><span class="type">double</span><span class="operator">&gt; &gt;</span>
+createMultiVectorView<span class="operator"> (</span><span class="keyword">const</span> Teuchos<span class="operator">::</span>RCP<span class="operator">&lt;</span>Epetra_MultiVector<span class="operator">&gt;&amp;</span> V<span class="operator">);</span><span class="comment">
+
+//
+// Return a list of parameters to pass into Anasazi's Block
+// Krylov-Schur solver.
+//
+// blockSize: Desired block size (number of starting vectors).
+//
+</span>Teuchos<span class="operator">::</span>RCP<span class="operator">&lt;</span>Teuchos<span class="operator">::</span>ParameterList<span class="operator">&gt;</span> 
+getParameterList<span class="operator"> (</span><span class="keyword">const</span><span class="type"> int</span> blockSize<span class="operator">);</span><span class="comment">
+
+//
+// Build an m by n (nonsquare) sparse matrix with entries
+//
+//          A(i,j) = k*(si)*(tj - 1) if i &lt;= j
+//                 = k*(tj)*(si - 1) if i  &gt; j
+//
+// where si = i/(m+1) and tj = j/(n+1) and k = 1/(n+1).  We use this
+// matrix to exercise Anasazi's Block Krylov-Schur solver.
+//
+</span>Teuchos<span class="operator">::</span>RCP<span class="operator">&lt;</span>Epetra_CrsMatrix<span class="operator">&gt;</span> 
+buildSparseMatrix<span class="operator"> (</span><span class="keyword">const</span> Epetra_Comm<span class="operator">&amp;</span> Comm<span class="operator">,</span><span class="keyword">
+                   const</span> Epetra_Map<span class="operator">&amp;</span> RowMap<span class="operator">,</span><span class="keyword">
+                   const</span> Epetra_Map<span class="operator">&amp;</span> ColMap<span class="operator">,</span><span class="keyword">
+                   const</span><span class="type"> int</span> m<span class="operator">,</span><span class="keyword"> 
+                   const</span><span class="type"> int</span> n<span class="operator">);</span><span class="comment">
+
+//
+// The "main" driver routine.
+//
+</span><span class="type">int</span><span class="keyword"> 
+main</span><span class="operator"> (</span><span class="type">int</span> argc<span class="operator">,</span><span class="type"> char</span><span class="operator"> *</span>argv<span class="operator">[]) 
+{</span><span class="comment">
+  // These "using" statements make the code a bit more concise.
+</span><span class="keyword">  using</span> Teuchos<span class="operator">::</span>ParameterList<span class="operator">;</span><span class="keyword">
+  using</span> Teuchos<span class="operator">::</span>RCP<span class="operator">;</span><span class="keyword">
+  using</span> Teuchos<span class="operator">::</span>rcp<span class="operator">;</span><span class="comment">
+
+  // Shorthand for a collection of operations on the Scalar=double type.
+</span><span class="keyword">  typedef</span> Teuchos<span class="operator">::</span>ScalarTraits<span class="operator">&lt;</span><span class="type">double</span><span class="operator">&gt;</span> STS<span class="operator">;</span><span class="comment">
+  // Shorthand for a collection of operations on Epetra vectors.
+</span><span class="keyword">  typedef</span> Anasazi<span class="operator">::</span>MultiVecTraits<span class="operator">&lt;</span><span class="type">double</span><span class="operator">,</span> Epetra_MultiVector<span class="operator">&gt;</span> MVT<span class="operator">;</span><span class="comment">
+  // Shorthand for a collection of operations on Epetra operators.
+</span><span class="keyword">  typedef</span> Anasazi<span class="operator">::</span>OperatorTraits<span class="operator">&lt;</span><span class="type">double</span><span class="operator">,</span> Epetra_MultiVector<span class="operator">,</span> Epetra_Operator<span class="operator">&gt;</span> OPT<span class="operator">;</span><span class="comment">
+
+  // If Trilinos was built with MPI, initialize MPI, otherwise
+  // initialize the serial "communicator" that stands in for MPI.
+</span><span class="pre">#ifdef EPETRA_MPI
+</span>  MPI_Init<span class="operator"> (&amp;</span>argc<span class="operator">,&amp;</span>argv<span class="operator">);</span>
+  Epetra_MpiComm Comm<span class="operator"> (</span>MPI_COMM_WORLD<span class="operator">);</span><span class="pre">
+#else
+</span>  Epetra_SerialComm Comm<span class="operator">;</span><span class="pre">
+#endif
+</span><span class="comment">
+  // Number of singular values to compute.
+</span><span class="keyword">  const</span><span class="type"> int</span> numSingularValues<span class="operator"> =</span><span class="int"> 4</span><span class="operator">;</span><span class="comment"> 
+
+  // The number of columns in the starting (multi)vector.
+</span><span class="keyword">  const</span><span class="type"> int</span> blockSize<span class="operator"> =</span><span class="int"> 1</span><span class="operator">;</span><span class="comment"> 
+
+  // Dimensions of the matrix A: m rows and n columns.
+</span><span class="type">  int</span> m<span class="operator"> =</span><span class="int"> 500</span><span class="operator">;</span><span class="type">
+  int</span> n<span class="operator"> =</span><span class="int"> 100</span><span class="operator">;</span><span class="comment">
+
+  // Construct a Map that puts approximately the same number of rows
+  // of the matrix A on each processor.
+</span>  Epetra_Map RowMap<span class="operator"> (</span>m<span class="operator">,</span><span class="int"> 0</span><span class="operator">,</span> Comm<span class="operator">);</span>
+  Epetra_Map ColMap<span class="operator"> (</span>n<span class="operator">,</span><span class="int"> 0</span><span class="operator">,</span> Comm<span class="operator">);</span><span class="comment">
+
+  // Create an Epetra_CrsMatrix using the above row and column maps,
+  // and the given matrix dimensions m and n.
+</span>  RCP<span class="operator">&lt;</span>Epetra_CrsMatrix<span class="operator">&gt;</span> A<span class="operator"> =</span> buildSparseMatrix<span class="operator"> (</span>Comm<span class="operator">,</span> RowMap<span class="operator">,</span> ColMap<span class="operator">,</span> m<span class="operator">,</span> n<span class="operator">);</span><span class="comment">
+
+  // Create a vector to be the solver's starting vector.
+  //
+  // The starting vector must have the same number of columns as the
+  // "Block Size" parameter's value.  In this case, the initial vector
+  // is in the domain of the matrix A, so it uses A's domain map as
+  // its map.
+</span>  RCP<span class="operator">&lt;</span>Epetra_MultiVector<span class="operator">&gt;</span> initVec<span class="operator"> =</span> 
+    rcp<span class="operator"> (</span><span class="keyword">new</span> Epetra_MultiVector<span class="operator"> (</span>A<span class="operator">-&gt;</span>OperatorDomainMap<span class="operator">(),</span> blockSize<span class="operator">));</span><span class="comment">
+
+  // Fill the initial vector with random data.
+</span>  MVT<span class="operator">::</span>MvRandom<span class="operator"> (*</span>initVec<span class="operator">);</span><span class="comment">
+
+  // Compute the SVD by solving A^T A x = (sigma)^2 x as an eigenvalue
+  // problem.  Return the eigenvalues of A^T A, and the eigenvectors
+  // of A^T A.  The solve() method is declared above and defined below
+  // the definition of main(), in this file; it is a simple wrapper of
+  // Anasazi's solver.
+</span>  std<span class="operator">::</span>pair<span class="operator">&lt;</span> std<span class="operator">::</span>vector<span class="operator">&lt;</span>Anasazi<span class="operator">::</span>Value<span class="operator">&lt;</span><span class="type">double</span><span class="operator">&gt; &gt;,</span> RCP<span class="operator">&lt;</span>Epetra_MultiVector<span class="operator">&gt; &gt;</span> result<span class="operator"> =</span> 
+    solve<span class="operator"> (</span>A<span class="operator">,</span> initVec<span class="operator">,</span> numSingularValues<span class="operator">);</span>
+  std<span class="operator">::</span>vector<span class="operator">&lt;</span>Anasazi<span class="operator">::</span>Value<span class="operator">&lt;</span><span class="type">double</span><span class="operator">&gt; &gt;&amp;</span> evals<span class="operator"> =</span> result<span class="operator">.</span>first<span class="operator">;</span><span class="keyword">
+
+  const</span><span class="type"> int</span> computedNumSingularValues<span class="operator"> =</span> evals<span class="operator">.</span>size<span class="operator">();</span><span class="flow">
+  if</span><span class="operator"> (</span>computedNumSingularValues<span class="operator"> &gt;</span><span class="int"> 0</span><span class="operator">) 
+    {</span><span class="keyword">
+      const</span><span class="type"> double</span> one<span class="operator"> =</span><span class="float"> 1.0</span><span class="operator">;</span><span class="keyword">
+      const</span><span class="type"> double</span> zero<span class="operator"> =</span><span class="float"> 0.0</span><span class="operator">;</span><span class="comment">
+      // My (MPI) process rank.
+</span><span class="type">      int</span> MyPID<span class="operator"> =</span> Comm<span class="operator">.</span>MyPID<span class="operator">();</span><span class="comment">
+
+      //////////////////////////////////////////////////////////////////////
+      //
+      // Compute the singular values, singular vectors, and direct residuals.
+      //
+      //////////////////////////////////////////////////////////////////////    
+
+      // The singular values of the matrix A are the square roots of the
+      // eigenvalues of A^T * A.
+</span><span class="flow">      if</span><span class="operator"> (</span>MyPID<span class="operator"> ==</span><span class="int"> 0</span><span class="operator">) {</span>
+        cout<span class="operator"> &lt;&lt;</span><span class="string"> "------------------------------------------------------"</span><span class="operator"> &lt;&lt;</span> endl<span class="operator">;</span>
+        cout<span class="operator"> &lt;&lt;</span><span class="string"> "Computed Singular Values: "</span><span class="operator"> &lt;&lt;</span> endl<span class="operator">;</span>
+        cout<span class="operator"> &lt;&lt;</span><span class="string"> "------------------------------------------------------"</span><span class="operator"> &lt;&lt;</span> endl<span class="operator">;
+      }</span><span class="flow">
+      for</span><span class="operator"> (</span><span class="type">int</span> i<span class="operator"> =</span><span class="int"> 0</span><span class="operator">;</span> i<span class="operator"> &lt;</span> computedNumSingularValues<span class="operator">; ++</span>i<span class="operator">) {</span><span class="comment">
+        // The operator A^T * A is symmetric, so the eigenvalues
+        // should all have zero imaginary parts.
+</span>        evals<span class="operator">[</span>i<span class="operator">].</span>realpart<span class="operator"> =</span> STS<span class="operator">::</span>squareroot<span class="operator"> (</span>evals<span class="operator">[</span>i<span class="operator">].</span>realpart<span class="operator">); 
+      }</span><span class="comment">
+
+      //////////////////////////////////////////////////////////////////////
+      // Compute the left singular vectors: u_j = (Av)_j / sigma_j
+      //////////////////////////////////////////////////////////////////////
+</span>
+      std<span class="operator">::</span>vector<span class="operator">&lt;</span><span class="type">double</span><span class="operator">&gt;</span> tempnrm<span class="operator"> (</span>computedNumSingularValues<span class="operator">);</span>
+      std<span class="operator">::</span>vector<span class="operator">&lt;</span><span class="type">double</span><span class="operator">&gt;</span> directnrm<span class="operator"> (</span>computedNumSingularValues<span class="operator">);</span><span class="comment">
+
+      // The multivectors Av and u are in the range of the operator A,
+      // so we have to create them using the range map of A.
+</span>      Epetra_MultiVector Av<span class="operator"> (</span>A<span class="operator">-&gt;</span>OperatorRangeMap<span class="operator">(),</span> computedNumSingularValues<span class="operator">);</span>
+      Epetra_MultiVector u<span class="operator"> (</span>A<span class="operator">-&gt;</span>OperatorRangeMap<span class="operator">(),</span> computedNumSingularValues<span class="operator">);</span><span class="comment">
+
+      // Compute Av = A*evecs and the norms of the columns of Av.
+</span>      RCP<span class="operator">&lt;</span>Epetra_MultiVector<span class="operator">&gt;</span> evecs<span class="operator"> =</span> result<span class="operator">.</span>second<span class="operator">;</span>
+      OPT<span class="operator">::</span>Apply<span class="operator"> (*</span>A<span class="operator">, *</span>evecs<span class="operator">,</span> Av<span class="operator">);</span>
+      MVT<span class="operator">::</span>MvNorm<span class="operator"> (</span>Av<span class="operator">,</span> tempnrm<span class="operator">);</span>
+
+      Teuchos<span class="operator">::</span>SerialDenseMatrix<span class="operator">&lt;</span><span class="type">int</span><span class="operator">,</span><span class="type">double</span><span class="operator">&gt;</span> S<span class="operator"> (</span>computedNumSingularValues<span class="operator">,</span> 
+                                                computedNumSingularValues<span class="operator">);</span><span class="flow">
+      for</span><span class="operator"> (</span><span class="type">int</span> i<span class="operator"> =</span><span class="int"> 0</span><span class="operator">;</span> i<span class="operator"> &lt;</span> computedNumSingularValues<span class="operator">; ++</span>i<span class="operator">) {</span> 
+        S<span class="operator">(</span>i<span class="operator">,</span>i<span class="operator">) =</span> one<span class="operator"> /</span> tempnrm<span class="operator">[</span>i<span class="operator">]; 
+      }</span><span class="comment">
+      // u := Av * S + zero * u
+</span>      MVT<span class="operator">::</span>MvTimesMatAddMv<span class="operator"> (</span>one<span class="operator">,</span> Av<span class="operator">,</span> S<span class="operator">,</span> zero<span class="operator">,</span> u<span class="operator">);</span><span class="comment">
+
+      //////////////////////////////////////////////////////////////////////
+      // Compute direct residuals: || (Av - sigma*u)_j ||_2
+      //////////////////////////////////////////////////////////////////////
+</span><span class="flow">
+      for</span><span class="operator"> (</span><span class="type">int</span> i<span class="operator"> =</span><span class="int"> 0</span><span class="operator">;</span> i<span class="operator"> &lt;</span> computedNumSingularValues<span class="operator">; ++</span>i<span class="operator">) {</span> 
+        S<span class="operator">(</span>i<span class="operator">,</span>i<span class="operator">) =</span> evals<span class="operator">[</span>i<span class="operator">].</span>realpart<span class="operator">; 
+      }</span><span class="comment">
+      // Av := -one * u * S + one * Av
+      //     = Av - u*S.
+</span>      MVT<span class="operator">::</span>MvTimesMatAddMv<span class="operator"> (-</span>one<span class="operator">,</span> u<span class="operator">,</span> S<span class="operator">,</span> one<span class="operator">,</span> Av<span class="operator">);</span><span class="comment">
+
+      // directnrm_j = || (Av)_j ||_2
+</span>      MVT<span class="operator">::</span>MvNorm<span class="operator"> (</span>Av<span class="operator">,</span> directnrm<span class="operator">);</span><span class="comment">
+
+      //////////////////////////////////////////////////////////////////////
+      // Print results to stdout on MPI process 0.
+      //////////////////////////////////////////////////////////////////////
+</span><span class="flow">
+      if</span><span class="operator"> (</span>MyPID<span class="operator"> ==</span><span class="int"> 0</span><span class="operator">) {</span><span class="comment">
+        // It's rude to set the ostream flags without restoring their 
+        // original values when you're done.
+</span>        std<span class="operator">::</span>ios_base<span class="operator">::</span>fmtflags originalFlags<span class="operator"> =</span> cout<span class="operator">.</span>flags<span class="operator"> ();</span><span class="comment">
+
+        // Set the flags on cout for nice neat output.
+</span>        cout<span class="operator">.</span>setf<span class="operator"> (</span>std<span class="operator">::</span>ios_base<span class="operator">::</span>right<span class="operator">,</span> std<span class="operator">::</span>ios_base<span class="operator">::</span>adjustfield<span class="operator">);</span>
+        cout<span class="operator"> &lt;&lt;</span> std<span class="operator">::</span>setw<span class="operator">(</span><span class="int">16</span><span class="operator">) &lt;&lt;</span><span class="string"> "Singular Value"</span><span class="operator">
+             &lt;&lt;</span> std<span class="operator">::</span>setw<span class="operator">(</span><span class="int">20</span><span class="operator">) &lt;&lt;</span><span class="string"> "Direct Residual"</span><span class="operator">
+             &lt;&lt;</span> endl<span class="operator">;</span>
+        cout<span class="operator"> &lt;&lt;</span><span class="string"> "------------------------------------------------------"</span><span class="operator"> &lt;&lt;</span> endl<span class="operator">;</span><span class="flow">
+        for</span><span class="operator"> (</span><span class="type">int</span> i<span class="operator"> =</span><span class="int"> 0</span><span class="operator">;</span> i<span class="operator"> &lt;</span> computedNumSingularValues<span class="operator">; ++</span>i<span class="operator">) {</span>
+          cout<span class="operator"> &lt;&lt;</span> std<span class="operator">::</span>setw<span class="operator">(</span><span class="int">16</span><span class="operator">) &lt;&lt;</span> evals<span class="operator">[</span>i<span class="operator">].</span>realpart<span class="operator">
+               &lt;&lt;</span> std<span class="operator">::</span>setw<span class="operator">(</span><span class="int">20</span><span class="operator">) &lt;&lt;</span> directnrm<span class="operator">[</span>i<span class="operator">] 
+               &lt;&lt;</span> endl<span class="operator">;
+        }</span>  
+        cout<span class="operator"> &lt;&lt;</span><span class="string"> "------------------------------------------------------"</span><span class="operator"> &lt;&lt;</span> endl<span class="operator">;</span><span class="comment">
+
+        // Restore cout's original flags.
+</span>        cout<span class="operator">.</span>flags<span class="operator"> (</span>originalFlags<span class="operator">);
+      }
+    }</span><span class="pre">
+
+#ifdef EPETRA_MPI
+</span>  MPI_Finalize<span class="operator">() ;</span><span class="pre">
+#endif
+</span><span class="flow">  return</span><span class="int"> 0</span><span class="operator">;
+}</span>
+
+
+std<span class="operator">::</span>pair<span class="operator">&lt;</span> std<span class="operator">::</span>vector<span class="operator">&lt;</span>Anasazi<span class="operator">::</span>Value<span class="operator">&lt;</span><span class="type">double</span><span class="operator">&gt; &gt;,</span> Teuchos<span class="operator">::</span>RCP<span class="operator">&lt;</span>Epetra_MultiVector<span class="operator">&gt; &gt;</span>
+solve<span class="operator"> (</span><span class="keyword">const</span> Teuchos<span class="operator">::</span>RCP<span class="operator">&lt;</span>Epetra_Operator<span class="operator">&gt;&amp;</span> A<span class="operator">,</span><span class="keyword"> 
+       const</span> Teuchos<span class="operator">::</span>RCP<span class="operator">&lt;</span>Epetra_MultiVector<span class="operator">&gt;&amp;</span> startingVector<span class="operator">,</span><span class="keyword">
+       const</span><span class="type"> int</span> numSingularValues<span class="operator">)
+{</span><span class="keyword">
+  using</span> Teuchos<span class="operator">::</span>ParameterList<span class="operator">;</span><span class="keyword">
+  using</span> Teuchos<span class="operator">::</span>RCP<span class="operator">;</span><span class="keyword">
+  using</span> Teuchos<span class="operator">::</span>rcp<span class="operator">;</span><span class="keyword">
+  
+  const</span> Epetra_Comm<span class="operator">&amp;</span> Comm<span class="operator"> =</span> A<span class="operator">-&gt;</span>Comm<span class="operator">();</span><span class="comment">
+
+  // Set the data type of the matrix operator and multivectors.
+  //
+  // Anasazi solvers work with many different operator and multivector
+  // types.  In general, you may use Epetra, Tpetra, or Thyra types
+  // directly, or even your own type.  If you use your own MV and OP
+  // types, you must either make them inherit from Anasazi::MultiVec
+  // resp. Anasazi::Operator, or specialize the
+  // Anasazi::MultiVecTraits and Anasazi::OperatorTraits traits
+  // classes for your MV and OP types.
+  //
+  // We choose MV and OP as we do below because of how we are solving
+  // the SVD.  Since we are solving it via A^T (A x) = (sigma)^2 x, we
+  // need to construct an operator that uses A to apply A^T * A.  The
+  // new operator is of type Anasazi::EpetraSymOp, which is-an
+  // Anasazi::Operator&lt;double&gt;.  As a result, in order to use the new
+  // operator in an Anasazi solver, we must set the template
+  // parameters to MV = Anasazi::MultiVec&lt;double&gt; and OP =
+  // Anasazi::Operator&lt;double&gt;.
+</span><span class="keyword">  typedef</span> Anasazi<span class="operator">::</span>MultiVec<span class="operator">&lt;</span><span class="type">double</span><span class="operator">&gt;</span> MV<span class="operator">;</span><span class="keyword">
+  typedef</span> Anasazi<span class="operator">::</span>Operator<span class="operator">&lt;</span><span class="type">double</span><span class="operator">&gt;</span> OP<span class="operator">;</span><span class="comment">
+
+  // The MultiVecTraits traits class maps from the Scalar and MV (see
+  // above) types to a common set of operations on MV objects.  It is
+  // the preferred public interface of all MV objects that Anasazi
+  // accepts.  There is a corresponding OperatorTraits traits class
+  // for OP objects as well, that provides a minimal common set of
+  // operations for OP objects.
+</span><span class="keyword">  typedef</span> Anasazi<span class="operator">::</span>MultiVecTraits<span class="operator">&lt;</span><span class="type">double</span><span class="operator">,</span> MV<span class="operator">&gt;</span> MVT<span class="operator">;</span><span class="keyword">
+  typedef</span> Anasazi<span class="operator">::</span>OperatorTraits<span class="operator">&lt;</span><span class="type">double</span><span class="operator">,</span> MV<span class="operator">,</span> OP<span class="operator">&gt;</span> OPT<span class="operator">;</span><span class="comment">
+
+  // Get solver parameters for Block Krylov-Schur.
+</span>  RCP<span class="operator">&lt;</span>ParameterList<span class="operator">&gt;</span> plist<span class="operator"> =</span> getParameterList<span class="operator"> (</span>startingVector<span class="operator">-&gt;</span>NumVectors<span class="operator">());</span><span class="comment">
+
+  // Create the operator that uses the matrix A to represent the A^T *
+  // A operator.  ATA does not copy A; it just keeps a pointer.
+</span>  RCP<span class="operator">&lt;</span>OP<span class="operator">&gt;</span> ATA<span class="operator"> =</span> rcp<span class="operator"> (</span><span class="keyword">new</span> Anasazi<span class="operator">::</span>EpetraSymOp<span class="operator"> (</span>A<span class="operator">));</span><span class="comment">
+
+  // As mentioned above, we must use MV = Anasazi::MultiVec&lt;double&gt;.
+  // However, our starting vector is an Epetra_MultiVector, not an
+  // Anasazi::MultiVec&lt;double&gt;.  Thus, we have to wrap it in an
+  // Anasazi::EpetraMultiVec, which is-an Anasazi::MultiVec&lt;double&gt;.
+</span>  RCP<span class="operator">&lt;</span>MV<span class="operator">&gt;</span> initVec<span class="operator"> =</span> createMultiVectorView<span class="operator"> (</span>startingVector<span class="operator">);</span><span class="comment">
+
+  // Create the object that holds the eigenvalue problem to solve.
+  // The problem object is templated on the Scalar, MultiVector (MV),
+  // and Operator (OP) types.
+</span>  RCP<span class="operator">&lt;</span>Anasazi<span class="operator">::</span>BasicEigenproblem<span class="operator">&lt;</span><span class="type">double</span><span class="operator">,</span> MV<span class="operator">,</span> OP<span class="operator">&gt; &gt;</span> problem<span class="operator"> =</span>
+    rcp<span class="operator"> (</span><span class="keyword">new</span> Anasazi<span class="operator">::</span>BasicEigenproblem<span class="operator">&lt;</span><span class="type">double</span><span class="operator">,</span> MV<span class="operator">,</span> OP<span class="operator">&gt; (</span>ATA<span class="operator">,</span> initVec<span class="operator">));</span><span class="comment">
+
+  // Inform the eigenproblem that the operator (A^T * A) is symmetric.
+</span>  problem<span class="operator">-&gt;</span>setHermitian<span class="operator"> (</span><span class="bool">true</span><span class="operator">);</span><span class="comment">
+
+  // Set the number of eigenvalues (singular values, in this case) to
+  // compute.
+</span>  problem<span class="operator">-&gt;</span>setNEV<span class="operator"> (</span>numSingularValues<span class="operator">);</span><span class="comment">
+
+  // Inform the eigenvalue problem that you are finished passing it
+  // information.
+</span>  TEUCHOS_TEST_FOR_EXCEPTION<span class="operator">( !</span> problem<span class="operator">-&gt;</span>setProblem<span class="operator">(),</span> 
+                      std<span class="operator">::</span>runtime_error<span class="operator">,</span><span class="string">
+                      "Failed to set the eigenvalue problem."</span><span class="operator"> );</span><span class="comment">
+
+  // Initialize the Block Krylov-Schur solver.  The solver may fill in
+  // the given parameter list with defaults for any parameters that
+  // were not supplied.  Thus, you don't have to know all the
+  // parameters, just those that matter to you.
+</span>  Anasazi<span class="operator">::</span>BlockKrylovSchurSolMgr<span class="operator">&lt;</span><span class="type">double</span><span class="operator">,</span> MV<span class="operator">,</span> OP<span class="operator">&gt;</span> MySolverMgr<span class="operator"> (</span>problem<span class="operator">, *</span>plist<span class="operator">);</span><span class="comment">
+
+  // Solve the problem to the specified tolerance or number of iterations.
+</span>  Anasazi<span class="operator">::</span>ReturnType returnCode<span class="operator"> =</span> MySolverMgr<span class="operator">.</span>solve<span class="operator">();</span><span class="flow">
+
+  if</span><span class="operator"> (</span>returnCode<span class="operator"> !=</span> Anasazi<span class="operator">::</span>Converged<span class="operator"> &amp;&amp;</span> Comm<span class="operator">.</span>MyPID<span class="operator">() ==</span><span class="int"> 0</span><span class="operator">) {</span>
+    cout<span class="operator"> &lt;&lt;</span><span class="string"> "The Anasazi solver's solve() routine returned Unconverged."</span><span class="operator"> 
+         &lt;&lt;</span> endl<span class="operator">;
+  }</span><span class="comment">
+
+  // Get the eigenvalues and eigenvectors from the eigenproblem.
+</span>  Anasazi<span class="operator">::</span>Eigensolution<span class="operator">&lt;</span><span class="type">double</span><span class="operator">,</span> MV<span class="operator">&gt;</span> sol<span class="operator"> =</span> problem<span class="operator">-&gt;</span>getSolution<span class="operator">();</span><span class="comment">
+
+  // sol.Evecs is-an Anasazi::EpetraMultiVec, which in turn is-an
+  // Epetra_MultiVector.  Cast it to Epetra_MultiVector so that the
+  // calling code knows how to deal with it.
+</span><span class="keyword">  using</span> Teuchos<span class="operator">::</span>rcp_dynamic_cast<span class="operator">;</span>
+  RCP<span class="operator">&lt;</span>Epetra_MultiVector<span class="operator">&gt;</span> eigenvecs<span class="operator"> =</span> 
+    rcp_dynamic_cast<span class="operator">&lt;</span>Anasazi<span class="operator">::</span>EpetraMultiVec<span class="operator">&gt; (</span>sol<span class="operator">.</span>Evecs<span class="operator">);</span><span class="comment">
+
+  // Return the eigenvalues and eigenvectors.  
+</span><span class="flow">  return</span> std<span class="operator">::</span>make_pair<span class="operator"> (</span>sol<span class="operator">.</span>Evals<span class="operator">,</span> eigenvecs<span class="operator">);
+}</span>
+
+
+Teuchos<span class="operator">::</span>RCP<span class="operator">&lt;</span>Anasazi<span class="operator">::</span>MultiVec<span class="operator">&lt;</span><span class="type">double</span><span class="operator">&gt; &gt;</span>
+createMultiVectorView<span class="operator"> (</span><span class="keyword">const</span> Teuchos<span class="operator">::</span>RCP<span class="operator">&lt;</span>Epetra_MultiVector<span class="operator">&gt;&amp;</span> V<span class="operator">)
+{</span><span class="keyword">
+  using</span> Teuchos<span class="operator">::</span>rcp<span class="operator">;</span><span class="keyword">
+  typedef</span> Anasazi<span class="operator">::</span>MultiVecTraits<span class="operator">&lt;</span><span class="type">double</span><span class="operator">,</span> Epetra_MultiVector<span class="operator">&gt;</span> MVT<span class="operator">;</span><span class="keyword">
+  const</span><span class="type"> int</span> numVecs<span class="operator"> =</span> MVT<span class="operator">::</span>GetNumberVecs<span class="operator"> (*</span>V<span class="operator">);</span><span class="comment">
+
+  // Creating a view of V requires telling Anasazi the indices of the
+  // columns of V to view.
+  //
+  // The current (10.6) release of Trilinos refers to a range of
+  // columns of a multivector using an std::vector of their
+  // (zero-based) column indices.  The development branch, and the
+  // next release, will also allow using a Teuchos::Range1D to refer
+  // to a range of columns of a multivector.
+</span>  std<span class="operator">::</span>vector<span class="operator">&lt;</span><span class="type">int</span><span class="operator">&gt;</span> index<span class="operator"> (</span>numVecs<span class="operator">);</span><span class="flow">
+  for</span><span class="operator"> (</span><span class="type">int</span> j<span class="operator"> =</span><span class="int"> 0</span><span class="operator">;</span> j<span class="operator"> &lt;</span> numVecs<span class="operator">; ++</span>j<span class="operator">)</span>
+    index<span class="operator">[</span>j<span class="operator">] =</span> j<span class="operator">;</span><span class="comment">
+
+  // Anasazi::EpetraMultiVec is-an Anasazi::MultiVec&lt;double&gt;.
+  //
+  // NOTE: If V is deleted, the view will no longer be valid.  Epetra
+  // views are not safe in that respect.  Tpetra views _are_ safe
+  // because the view holds an RCP to the original vector, preventing
+  // it from being deleted until after the view is deleted.
+</span><span class="flow">  return</span> rcp<span class="operator"> (</span><span class="keyword">new</span> Anasazi<span class="operator">::</span>EpetraMultiVec<span class="operator"> (</span>View<span class="operator">, *</span>V<span class="operator">,</span> index<span class="operator">));
+}</span>
+
+
+Teuchos<span class="operator">::</span>RCP<span class="operator">&lt;</span>Epetra_CrsMatrix<span class="operator">&gt;</span> 
+buildSparseMatrix<span class="operator"> (</span><span class="keyword">const</span> Epetra_Comm<span class="operator">&amp;</span> Comm<span class="operator">,</span><span class="keyword">
+                   const</span> Epetra_Map<span class="operator">&amp;</span> RowMap<span class="operator">,</span><span class="keyword">
+                   const</span> Epetra_Map<span class="operator">&amp;</span> ColMap<span class="operator">,</span><span class="keyword">
+                   const</span><span class="type"> int</span> m<span class="operator">,</span><span class="keyword"> 
+                   const</span><span class="type"> int</span> n<span class="operator">)
+{</span><span class="keyword">
+  using</span> Teuchos<span class="operator">::</span>RCP<span class="operator">;</span><span class="keyword">
+  using</span> Teuchos<span class="operator">::</span>rcp<span class="operator">;</span><span class="keyword">
+  typedef</span> Teuchos<span class="operator">::</span>ScalarTraits<span class="operator">&lt;</span><span class="type">double</span><span class="operator">&gt;</span> STS<span class="operator">;</span><span class="keyword">
+
+  const</span><span class="type"> double</span> one<span class="operator"> =</span> STS<span class="operator">::</span>one<span class="operator">();</span><span class="keyword">
+  const</span><span class="type"> double</span> zero<span class="operator"> =</span> STS<span class="operator">::</span>zero<span class="operator">();</span><span class="comment">
+
+  // My MPI process rank.
+</span><span class="keyword">  const</span><span class="type"> int</span> MyPID<span class="operator"> =</span> Comm<span class="operator">.</span>MyPID<span class="operator">();</span><span class="comment">
+
+  // Get update list and number of local equations from newly created Map.
+</span><span class="keyword">  const</span><span class="type"> int</span> NumMyRowElements<span class="operator"> =</span> RowMap<span class="operator">.</span>NumMyElements<span class="operator"> ();</span>
+  std<span class="operator">::</span>vector<span class="operator">&lt;</span><span class="type">int</span><span class="operator">&gt;</span> MyGlobalRowElements<span class="operator"> (</span>NumMyRowElements<span class="operator">);</span>
+  RowMap<span class="operator">.</span>MyGlobalElements<span class="operator"> (&amp;</span>MyGlobalRowElements<span class="operator">[</span><span class="int">0</span><span class="operator">]);</span><span class="comment">
+
+  // Create an Epetra_CrsMatrix using the given row map.
+</span>  RCP<span class="operator">&lt;</span>Epetra_CrsMatrix<span class="operator">&gt;</span> A<span class="operator"> =</span> rcp<span class="operator"> (</span><span class="keyword">new</span> Epetra_CrsMatrix<span class="operator"> (</span>Copy<span class="operator">,</span> RowMap<span class="operator">,</span> n<span class="operator">));</span><span class="comment">
+
+  // We use info to catch any errors that may have happened during
+  // matrix assembly, and report them globally.  We do this so that
+  // the MPI processes won't call FillComplete() unless they all
+  // successfully filled their parts of the matrix.
+</span><span class="type">  int</span> info<span class="operator"> =</span><span class="int"> 0</span><span class="operator">;</span><span class="flow">
+  try</span><span class="operator"> {</span><span class="comment">
+    //
+    // Compute coefficients for the discrete integral operator.
+    //
+</span>    std<span class="operator">::</span>vector<span class="operator">&lt;</span><span class="type">double</span><span class="operator">&gt;</span> Values<span class="operator"> (</span>n<span class="operator">);</span>
+    std<span class="operator">::</span>vector<span class="operator">&lt;</span><span class="type">int</span><span class="operator">&gt;</span> Indices<span class="operator"> (</span>n<span class="operator">);</span><span class="keyword">
+    const</span><span class="type"> double</span> inv_mp1<span class="operator"> =</span> one<span class="operator"> / (</span>m<span class="operator">+</span><span class="int">1</span><span class="operator">);</span><span class="keyword">
+    const</span><span class="type"> double</span> inv_np1<span class="operator"> =</span> one<span class="operator"> / (</span>n<span class="operator">+</span><span class="int">1</span><span class="operator">);</span><span class="flow">
+    for</span><span class="operator"> (</span><span class="type">int</span> i<span class="operator"> =</span><span class="int"> 0</span><span class="operator">;</span> i<span class="operator"> &lt;</span> n<span class="operator">; ++</span>i<span class="operator">) {</span> 
+      Indices<span class="operator">[</span>i<span class="operator">] =</span> i<span class="operator">; 
+    }</span><span class="flow">
+    for</span><span class="operator"> (</span><span class="type">int</span> i<span class="operator"> =</span><span class="int"> 0</span><span class="operator">;</span> i<span class="operator"> &lt;</span> NumMyRowElements<span class="operator">; ++</span>i<span class="operator">) {</span><span class="flow">
+      for</span><span class="operator"> (</span><span class="type">int</span> j<span class="operator"> =</span><span class="int"> 0</span><span class="operator">;</span> j<span class="operator"> &lt;</span> n<span class="operator">; ++</span>j<span class="operator">) 
+        {</span><span class="flow">
+          if</span><span class="operator"> (</span>MyGlobalRowElements<span class="operator">[</span>i<span class="operator">] &lt;=</span> j<span class="operator">) {</span>
+            Values<span class="operator">[</span>j<span class="operator">] =</span> inv_np1<span class="operator"> * 
+              ( (</span>MyGlobalRowElements<span class="operator">[</span>i<span class="operator">]+</span>one<span class="operator">)*</span>inv_mp1<span class="operator"> ) * 
+              ( (</span>j<span class="operator">+</span>one<span class="operator">)*</span>inv_np1<span class="operator"> -</span> one<span class="operator"> );</span><span class="comment">  // k*(si)*(tj-1)
+</span><span class="operator">          }</span><span class="flow">
+          else</span><span class="operator"> {</span>
+            Values<span class="operator">[</span>j<span class="operator">] =</span> inv_np1<span class="operator"> * 
+              ( (</span>j<span class="operator">+</span>one<span class="operator">)*</span>inv_np1<span class="operator"> ) * 
+              ( (</span>MyGlobalRowElements<span class="operator">[</span>i<span class="operator">]+</span>one<span class="operator">)*</span>inv_mp1<span class="operator"> -</span> one<span class="operator"> );</span><span class="comment">  // k*(tj)*(si-1)
+</span><span class="operator">          }
+        }</span>
+      info<span class="operator"> =</span> A<span class="operator">-&gt;</span>InsertGlobalValues<span class="operator"> (</span>MyGlobalRowElements<span class="operator">[</span>i<span class="operator">],</span> n<span class="operator">, 
+                                    &amp;</span>Values<span class="operator">[</span><span class="int">0</span><span class="operator">], &amp;</span>Indices<span class="operator">[</span><span class="int">0</span><span class="operator">]);</span><span class="comment">
+      // Make sure that the insertion succeeded.  Teuchos'
+      // TEUCHOS_TEST_FOR_EXCEPTION macro gives a nice error message if the
+      // thrown exception isn't caught.  We'll report this on the
+      // offending MPI process.
+</span>      TEUCHOS_TEST_FOR_EXCEPTION<span class="operator">(</span> info<span class="operator"> !=</span><span class="int"> 0</span><span class="operator">,</span> std<span class="operator">::</span>runtime_error<span class="operator">,</span><span class="string"> "Failed to insert n="</span><span class="operator"> 
+                          &lt;&lt;</span> n<span class="operator"> &lt;&lt;</span><span class="string"> " global value"</span><span class="operator"> &lt;&lt; (</span>n<span class="operator"> !=</span><span class="int"> 1</span><span class="operator"> ?</span><span class="string"> "s"</span><span class="operator"> :</span><span class="string"> ""</span><span class="operator">) 
+                          &lt;&lt;</span><span class="string"> " in row "</span><span class="operator"> &lt;&lt;</span> MyGlobalRowElements<span class="operator">[</span>i<span class="operator">] 
+                          &lt;&lt;</span><span class="string"> " of the matrix."</span><span class="operator"> );
+    }</span><span class="comment"> // for i = 0...
+    
+    // Call FillComplete on the matrix.  Since the matrix isn't square,
+    // we have to give FillComplete the domain and range maps, which in
+    // this case are the column resp. row maps.
+</span>    info<span class="operator"> =</span> A<span class="operator">-&gt;</span>FillComplete<span class="operator"> (</span>ColMap<span class="operator">,</span> RowMap<span class="operator">);</span>
+    TEUCHOS_TEST_FOR_EXCEPTION<span class="operator">(</span> info<span class="operator"> !=</span><span class="int"> 0</span><span class="operator">,</span> std<span class="operator">::</span>runtime_error<span class="operator">,</span><span class="string"> 
+                        "FillComplete failed with INFO = "</span><span class="operator"> &lt;&lt;</span> info<span class="operator"> &lt;&lt;</span><span class="string"> "."</span><span class="operator">);</span>
+    info<span class="operator"> =</span> A<span class="operator">-&gt;</span>OptimizeStorage<span class="operator">();</span>
+    TEUCHOS_TEST_FOR_EXCEPTION<span class="operator">(</span> info<span class="operator"> !=</span><span class="int"> 0</span><span class="operator">,</span> std<span class="operator">::</span>runtime_error<span class="operator">,</span><span class="string"> 
+                        "OptimizeStorage failed with INFO = "</span><span class="operator"> &lt;&lt;</span> info<span class="operator"> &lt;&lt;</span><span class="string"> "."</span><span class="operator">);
+  }</span><span class="flow"> catch</span><span class="operator"> (</span>std<span class="operator">::</span>runtime_error<span class="operator">&amp;</span> e<span class="operator">) {</span><span class="comment">
+    // If multiple MPI processes are reporting errors, sometimes
+    // forming the error message as a string and then writing it to
+    // the output stream prevents messages from different processes
+    // from being interleaved.
+</span>    std<span class="operator">::</span>ostringstream os<span class="operator">;</span>
+    os<span class="operator"> &lt;&lt;</span><span class="string"> "*** Error on MPI process "</span><span class="operator"> &lt;&lt;</span> MyPID<span class="operator"> &lt;&lt;</span><span class="string"> ": "</span><span class="operator"> &lt;&lt;</span> e<span class="operator">.</span>what<span class="operator">();</span>
+    cerr<span class="operator"> &lt;&lt;</span> os<span class="operator">.</span>str<span class="operator">() &lt;&lt;</span> endl<span class="operator">;</span><span class="flow">
+    if</span><span class="operator"> (</span>info<span class="operator"> ==</span><span class="int"> 0</span><span class="operator">)</span>
+      info<span class="operator"> = -</span><span class="int">1</span><span class="operator">;</span><span class="comment"> // All procs will share info later on.
+</span><span class="operator">  }</span><span class="comment">
+
+  // Do a reduction on the value of info, to ensure that all the MPI
+  // processes successfully filled the sparse matrix.
+</span><span class="operator">  {</span><span class="type">
+    int</span> minInfo<span class="operator"> =</span><span class="int"> 0</span><span class="operator">;</span><span class="type">
+    int</span> maxInfo<span class="operator"> =</span><span class="int"> 0</span><span class="operator">;</span><span class="comment">
+
+    // Test both info &lt; 0 and info &gt; 0.
+</span>    Comm<span class="operator">.</span>MinAll<span class="operator"> (&amp;</span>info<span class="operator">, &amp;</span>minInfo<span class="operator">,</span><span class="int"> 1</span><span class="operator">);</span>
+    Comm<span class="operator">.</span>MaxAll<span class="operator"> (&amp;</span>info<span class="operator">, &amp;</span>maxInfo<span class="operator">,</span><span class="int"> 1</span><span class="operator">);</span>
+    TEUCHOS_TEST_FOR_EXCEPTION<span class="operator">(</span> minInfo<span class="operator"> !=</span><span class="int"> 0</span><span class="operator"> ||</span> maxInfo<span class="operator"> !=</span><span class="int"> 0</span><span class="operator">,</span> std<span class="operator">::</span>runtime_error<span class="operator">,</span><span class="string">
+                        "Filling and assembling the sparse matrix failed."</span><span class="operator"> );
+  }</span><span class="comment">
+  
+  
+  // Shut down Epetra Warning tracebacks.
+</span>  A<span class="operator">-&gt;</span>SetTracebackMode<span class="operator"> (</span><span class="int">1</span><span class="operator">);</span><span class="flow">
+
+  return</span> A<span class="operator">;
+}</span>
+
+
+Teuchos<span class="operator">::</span>RCP<span class="operator">&lt;</span>Teuchos<span class="operator">::</span>ParameterList<span class="operator">&gt;</span> 
+getParameterList<span class="operator"> (</span><span class="keyword">const</span><span class="type"> int</span> blockSize<span class="operator">)
+{</span><span class="keyword">
+  using</span> Teuchos<span class="operator">::</span>RCP<span class="operator">;</span><span class="keyword">
+  using</span> Teuchos<span class="operator">::</span>rcp<span class="operator">;</span><span class="keyword">
+  using</span> Teuchos<span class="operator">::</span>ParameterList<span class="operator">;</span>
+
+  RCP<span class="operator">&lt;</span>ParameterList<span class="operator">&gt;</span> plist<span class="operator"> =</span> rcp<span class="operator"> (</span><span class="keyword">new</span> ParameterList<span class="operator"> (</span><span class="string">"Block Krylov-Schur"</span><span class="operator">));</span><span class="comment">
+
+  // "Num Blocks" parameter is the Krylov basis length to use.
+</span><span class="keyword">  const</span><span class="type"> int</span> numBlocks<span class="operator"> =</span><span class="int"> 10</span><span class="operator">;</span><span class="comment">
+
+  // "Maximum Restarts" parameter is the maximum number of times to
+  // restart the Krylov methods.
+</span><span class="keyword">  const</span><span class="type"> int</span> maxRestarts<span class="operator"> =</span><span class="int"> 20</span><span class="operator">;</span><span class="comment">
+
+  // For this test, we set the "Convergence Tolerance" parameter to
+  // machine precision for double-precision floating-point values.
+  // Teuchos' ScalarTraits traits class knows what machine precision
+  // is for many different floating-point types.  We could also call
+  // LAPACK's DLAMCH('E') to get machine precision.
+</span><span class="keyword">  const</span><span class="type"> double</span> tol<span class="operator"> =</span> Teuchos<span class="operator">::</span>ScalarTraits<span class="operator">&lt;</span><span class="type">double</span><span class="operator">&gt;::</span>eps<span class="operator">();</span><span class="comment">
+
+  // The "Which" parameter governs the order in which Anasazi computes
+  // eigenvalues (or singular values, in this case).  "LM" means the
+  // eigenvalues of Largest Magnitude.  Valid options are "SM", "LM",
+  // "SR", and "LR".  These mean, respectively, "Smallest Magnitude,"
+  // "Largest Magnitude," "Smallest Real", and "Largest Real."  
+  //
+  // These abbreviations are exactly the same as those used by
+  // ARPACK's "which" parameter, and in turn by Matlab's "eigs"
+  // function (which calls ARPACK internally).
+</span><span class="keyword">  const</span> std<span class="operator">::</span>string which<span class="operator"> =</span><span class="string"> "LM"</span><span class="operator">;</span>
+
+  plist<span class="operator">-&gt;</span>set<span class="operator"> (</span><span class="string">"Which"</span><span class="operator">,</span> which<span class="operator">);</span>
+  plist<span class="operator">-&gt;</span>set<span class="operator"> (</span><span class="string">"Block Size"</span><span class="operator">,</span> blockSize<span class="operator">);</span>
+  plist<span class="operator">-&gt;</span>set<span class="operator"> (</span><span class="string">"Num Blocks"</span><span class="operator">,</span> numBlocks<span class="operator">);</span>
+  plist<span class="operator">-&gt;</span>set<span class="operator"> (</span><span class="string">"Maximum Restarts"</span><span class="operator">,</span> maxRestarts<span class="operator">);</span>
+  plist<span class="operator">-&gt;</span>set<span class="operator"> (</span><span class="string">"Convergence Tolerance"</span><span class="operator">,</span> tol<span class="operator">);</span><span class="comment">
+  // Tell Anasazi to print output for errors, warnings, timing
+  // details, and the final summary of results.
+</span>  plist<span class="operator">-&gt;</span>set<span class="operator"> (</span><span class="string">"Verbosity"</span><span class="operator">,</span> Anasazi<span class="operator">::</span>Errors<span class="operator"> +</span> Anasazi<span class="operator">::</span>Warnings<span class="operator"> +</span> 
+              Anasazi<span class="operator">::</span>TimingDetails<span class="operator"> +</span> Anasazi<span class="operator">::</span>FinalSummary<span class="operator">);</span><span class="flow">
+
+  return</span> plist<span class="operator">;
+}</span>
+
+</pre>
+
+
+</body></html>

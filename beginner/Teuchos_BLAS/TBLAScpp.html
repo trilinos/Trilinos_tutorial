@@ -1,0 +1,58 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>C++ code colored by C++2HTML</title>
+<meta name="generator" content="C++2HTML by Jasper Bedaux">
+<!-- To generate your own colored code visit http://www.bedaux.net/cpp2html/ -->
+<style type="text/css">
+.comment { color: #999999; font-style: italic; }
+.pre { color: #000099; }
+.string { color: #009900; }
+.char { color: #009900; }
+.float { color: #996600; }
+.int { color: #999900; }
+.bool { color: #000000; font-weight: bold; }
+.type { color: #FF6633; }
+.flow { color: #FF0000; }
+.keyword { color: #990000; }
+.operator { color: #663300; font-weight: bold; }
+.operator { color: #663300; font-weight: bold; }
+</style>
+</head>
+<body>
+<pre><span class="pre">#include "Teuchos_BLAS.hpp"
+#include "Teuchos_Version.hpp"
+
+#include "../../aprepro_vhelp.h"
+</span><span class="type">
+int</span><span class="keyword"> main</span><span class="operator">(</span><span class="type">int</span> argc<span class="operator">,</span><span class="type"> char</span><span class="operator">*</span> argv<span class="operator">[])
+{</span>
+
+  std<span class="operator">::</span>cout<span class="operator"> &lt;&lt;</span> Teuchos<span class="operator">::</span>Teuchos_Version<span class="operator">() &lt;&lt;</span> std<span class="operator">::</span>endl<span class="operator"> &lt;&lt;</span> std<span class="operator">::</span>endl<span class="operator">;</span><span class="comment">
+
+  // Creating an instance of the BLAS class for double-precision kernels looks like:
+</span>  Teuchos<span class="operator">::</span>BLAS<span class="operator">&lt;</span><span class="type">int</span><span class="operator">,</span><span class="type"> double</span><span class="operator">&gt;</span> blas<span class="operator">;</span><span class="comment">
+
+  // This instance provides the access to all the BLAS kernels like _SCAL.
+</span><span class="keyword">
+  const</span><span class="type"> int</span> n<span class="operator"> =</span><span class="int"> 10</span><span class="operator">;</span><span class="type">
+  double</span> alpha<span class="operator"> =</span><span class="float"> 2.0</span><span class="operator">;</span><span class="type">
+
+  double</span> x<span class="operator">[</span> n<span class="operator"> ];</span><span class="flow">
+  for</span><span class="operator"> (</span><span class="type"> int</span> i<span class="operator">=</span><span class="int">0</span><span class="operator">;</span> i<span class="operator">&lt;</span>n<span class="operator">;</span> i<span class="operator">++ ) {</span> x<span class="operator">[</span>i<span class="operator">] =</span> i<span class="operator">; }</span>
+
+  blas<span class="operator">.</span>SCAL<span class="operator">(</span> n<span class="operator">,</span> alpha<span class="operator">,</span> x<span class="operator">,</span><span class="int"> 1</span><span class="operator"> );</span><span class="type">
+
+  int</span> max_idx<span class="operator"> =</span> blas<span class="operator">.</span>IAMAX<span class="operator">(</span> n<span class="operator">,</span> x<span class="operator">,</span><span class="int"> 1</span><span class="operator"> );</span>
+
+  std<span class="operator">::</span>cout<span class="operator">&lt;&lt;</span><span class="string"> "The index of the maximum magnitude entry of x[] is the "</span><span class="operator">
+      &lt;&lt;</span>  max_idx<span class="operator"> &lt;&lt;</span><span class="string">"-th and x[ "</span><span class="operator"> &lt;&lt;</span> max_idx<span class="operator">-</span><span class="int">1</span><span class="operator"> &lt;&lt;</span><span class="string"> " ] = "</span><span class="operator">&lt;&lt;</span> x<span class="operator">[</span>max_idx<span class="operator">-</span><span class="int">1</span><span class="operator">]
+      &lt;&lt;</span> std<span class="operator">::</span>endl<span class="operator">;</span><span class="flow">
+
+  return</span><span class="int"> 0</span><span class="operator">;
+}</span>
+
+</pre>
+
+
+</body></html>

@@ -1,0 +1,541 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>C++ code colored by C++2HTML</title>
+<meta name="generator" content="C++2HTML by Jasper Bedaux">
+<!-- To generate your own colored code visit http://www.bedaux.net/cpp2html/ -->
+<style type="text/css">
+.comment { color: #999999; font-style: italic; }
+.pre { color: #000099; }
+.string { color: #009900; }
+.char { color: #009900; }
+.float { color: #996600; }
+.int { color: #999900; }
+.bool { color: #000000; font-weight: bold; }
+.type { color: #FF6633; }
+.flow { color: #FF0000; }
+.keyword { color: #990000; }
+.operator { color: #663300; font-weight: bold; }
+.operator { color: #663300; font-weight: bold; }
+</style>
+</head>
+<body>
+<pre><span class="comment">//
+// Simple example of solving the following nonlinear partial
+// differential equation (PDE):
+//
+// -\Delta u + \lambda e^u = 0  in \Omega = (0,1) \times (0,1)
+//                       u = 0  on \partial \Omega
+//
+// using NOX (Trilinos' Nonlinear Object-Oriented Solutions package).
+// For more details and documentation, see the NOX web site:
+//
+// http://trilinos.sandia.gov/packages/nox/
+//
+</span><span class="pre">#ifdef HAVE_MPI
+#  include "mpi.h"
+#  include "Epetra_MpiComm.h"
+#else
+#  include "Epetra_SerialComm.h"
+#endif
+#include "Epetra_Map.h"
+#include "Epetra_CrsMatrix.h"
+#include "Epetra_RowMatrix.h"
+#include "Epetra_Vector.h"
+
+#include "NOX.H"
+#include "NOX_Epetra_Interface_Required.H"
+#include "NOX_Epetra_Interface_Jacobian.H"
+#include "NOX_Epetra_LinearSystem_AztecOO.H"
+#include "NOX_Epetra_Group.H"
+
+#include "../../aprepro_vhelp.h"
+</span><span class="comment">
+//
+// Report the the number of lower, upper, left and right nodes, for
+// each element of a Cartesian grid containing nx x ny elements.
+//
+</span><span class="keyword">static</span><span class="type"> void</span>  
+getNeighbors<span class="operator"> (</span><span class="keyword">const</span><span class="type"> int</span> i<span class="operator">,</span><span class="keyword"> const</span><span class="type"> int</span> nx<span class="operator">,</span><span class="keyword"> const</span><span class="type"> int</span> ny<span class="operator">,</span><span class="type">
+              int</span><span class="operator"> &amp;</span> left<span class="operator">,</span><span class="type"> int</span><span class="operator"> &amp;</span> right<span class="operator">,</span><span class="type"> 
+              int</span><span class="operator"> &amp;</span> lower<span class="operator">,</span><span class="type"> int</span><span class="operator"> &amp;</span> upper<span class="operator">) 
+{</span><span class="type">
+  int</span> ix<span class="operator">,</span> iy<span class="operator">;</span>
+  ix<span class="operator"> =</span> i<span class="operator"> %</span> nx<span class="operator">;</span>
+
+  iy<span class="operator"> = (</span>i<span class="operator"> -</span> ix<span class="operator">) /</span> nx<span class="operator">;</span><span class="flow">
+
+  if</span><span class="operator">(</span> ix<span class="operator"> ==</span><span class="int"> 0</span><span class="operator"> )</span> 
+    left<span class="operator"> = -</span><span class="int">1</span><span class="operator">;</span><span class="flow">
+  else</span> 
+    left<span class="operator"> =</span> i<span class="operator">-</span><span class="int">1</span><span class="operator">;</span><span class="flow">
+
+  if</span><span class="operator">(</span> ix<span class="operator"> ==</span> nx<span class="operator">-</span><span class="int">1</span><span class="operator"> )</span> 
+    right<span class="operator"> = -</span><span class="int">1</span><span class="operator">;</span><span class="flow">
+  else</span>
+    right<span class="operator"> =</span> i<span class="operator">+</span><span class="int">1</span><span class="operator">;</span><span class="flow">
+
+  if</span><span class="operator">(</span> iy<span class="operator"> ==</span><span class="int"> 0</span><span class="operator"> )</span> 
+    lower<span class="operator"> = -</span><span class="int">1</span><span class="operator">;</span><span class="flow">
+  else</span>
+    lower<span class="operator"> =</span> i<span class="operator">-</span>nx<span class="operator">;</span><span class="flow">
+
+  if</span><span class="operator">(</span> iy<span class="operator"> ==</span> ny<span class="operator">-</span><span class="int">1</span><span class="operator"> )</span> 
+    upper<span class="operator"> = -</span><span class="int">1</span><span class="operator">;</span><span class="flow">
+  else</span>
+    upper<span class="operator"> =</span> i<span class="operator">+</span>nx<span class="operator">;</span><span class="flow">
+
+  return</span><span class="operator">;
+}</span><span class="comment">
+
+//
+// Return a new sparse matrix corresponding to the discretization of a
+// Laplacian over a 2-D Cartesian grid, with nx grid points along the
+// x axis and ny grid points along the y axis. For simplicity's sake,
+// we assume that all nodes in the grid are internal (Dirichlet
+// boundary nodes should alread have been condensated).
+//
+// Input arguments:
+// 
+// nx: Number of (internal) grid points along the x axis.
+// ny: Number of (internal) grid points along the y axis.
+// Comm: The communicator over which to distribute the returned sparse
+//   matrix.
+//
+// Return: The sparse matrix, distributed over the given communicator.
+//
+</span>Teuchos<span class="operator">::</span>RCP<span class="operator">&lt;</span>Epetra_CrsMatrix<span class="operator">&gt;</span>
+CreateLaplacian<span class="operator"> (</span><span class="keyword">const</span><span class="type"> int</span> nx<span class="operator">,</span><span class="keyword"> 
+                 const</span><span class="type"> int</span> ny<span class="operator">,</span><span class="keyword">
+                 const</span> Epetra_Comm<span class="operator">&amp;</span> Comm<span class="operator">)
+{</span><span class="keyword">
+  using</span> Teuchos<span class="operator">::</span>RCP<span class="operator">;</span><span class="keyword">
+  using</span> Teuchos<span class="operator">::</span>rcp<span class="operator">;</span><span class="type">
+
+  int</span> NumGlobalElements<span class="operator"> =</span> nx<span class="operator"> *</span> ny<span class="operator">;</span><span class="comment">
+
+  // Create a map that distributes the elements evenly over the
+  // process(es) participating in the given communicator.
+</span>  Epetra_Map Map<span class="operator"> (</span>NumGlobalElements<span class="operator">,</span><span class="int"> 0</span><span class="operator">,</span> Comm<span class="operator">);</span><span class="comment">
+
+  // Local number of rows
+</span><span class="type">  int</span> NumMyElements<span class="operator"> =</span> Map<span class="operator">.</span>NumMyElements<span class="operator">();</span><span class="comment">
+
+  // Get the list of the global elements that belong to my MPI process.
+</span><span class="type">  int</span><span class="operator">*</span> MyGlobalElements<span class="operator"> =</span> Map<span class="operator">.</span>MyGlobalElements<span class="operator">();</span><span class="comment">
+
+  // Grid 
+</span><span class="type">  double</span> hx<span class="operator"> =</span><span class="float"> 1.0</span><span class="operator">/(</span>nx<span class="operator">-</span><span class="int">1</span><span class="operator">);</span><span class="type">
+  double</span> hy<span class="operator"> =</span><span class="float"> 1.0</span><span class="operator">/(</span>ny<span class="operator">-</span><span class="int">1</span><span class="operator">);</span><span class="type">
+
+  double</span> off_left<span class="operator">  = -</span><span class="float">1.0</span><span class="operator">/(</span>hx<span class="operator">*</span>hx<span class="operator">);</span><span class="type">
+  double</span> off_right<span class="operator"> = -</span><span class="float">1.0</span><span class="operator">/(</span>hx<span class="operator">*</span>hx<span class="operator">);</span><span class="type">
+  double</span> off_lower<span class="operator"> = -</span><span class="float">1.0</span><span class="operator">/(</span>hy<span class="operator">*</span>hy<span class="operator">);</span><span class="type">
+  double</span> off_upper<span class="operator"> = -</span><span class="float">1.0</span><span class="operator">/(</span>hy<span class="operator">*</span>hy<span class="operator">);</span><span class="type">
+  double</span> diag<span class="operator">      =</span><span class="float">  2.0</span><span class="operator">/(</span>hx<span class="operator">*</span>hx<span class="operator">) +</span><span class="float"> 2.0</span><span class="operator">/(</span>hy<span class="operator">*</span>hy<span class="operator">);</span><span class="type">
+
+  int</span> left<span class="operator">,</span> right<span class="operator">,</span> lower<span class="operator">,</span> upper<span class="operator">;</span><span class="comment">
+
+  // "5" is a conservative (slightly too large in some cases)
+  // overestimate of the number of nonzero elements per row of the
+  // sparse matrix.  The estimate doesn't have to be exact since we
+  // are using Epetra_CrsMatrix in dynamic allocation mode.
+</span>  RCP<span class="operator">&lt;</span>Epetra_CrsMatrix<span class="operator">&gt;</span> A<span class="operator"> =</span> rcp<span class="operator"> (</span><span class="keyword">new</span> Epetra_CrsMatrix<span class="operator"> (</span>Copy<span class="operator">,</span> Map<span class="operator">,</span><span class="int"> 5</span><span class="operator">));</span><span class="comment">
+
+  // Add rows one at a time to the sparse matrix.
+</span>  std<span class="operator">::</span>vector<span class="operator">&lt;</span><span class="type">double</span><span class="operator">&gt;</span> Values<span class="operator"> (</span><span class="int">4</span><span class="operator">);</span>
+  std<span class="operator">::</span>vector<span class="operator">&lt;</span><span class="type">int</span><span class="operator">&gt;</span> Indices<span class="operator"> (</span><span class="int">4</span><span class="operator">);</span><span class="flow">
+
+  for</span><span class="operator"> (</span><span class="type">int</span> i<span class="operator"> =</span><span class="int"> 0</span><span class="operator">;</span> i<span class="operator"> &lt;</span> NumMyElements<span class="operator">; ++</span>i<span class="operator">) 
+    {</span><span class="type">
+      int</span> NumEntries<span class="operator"> =</span><span class="int"> 0</span><span class="operator">;</span>
+      getNeighbors<span class="operator"> (</span>MyGlobalElements<span class="operator">[</span>i<span class="operator">],</span> nx<span class="operator">,</span> ny<span class="operator">,</span> 
+                    left<span class="operator">,</span> right<span class="operator">,</span> lower<span class="operator">,</span> upper<span class="operator">);</span><span class="flow">
+      if</span><span class="operator"> (</span>left<span class="operator"> != -</span><span class="int">1</span><span class="operator">) {</span>
+        Indices<span class="operator">[</span>NumEntries<span class="operator">] =</span> left<span class="operator">;</span>
+        Values<span class="operator">[</span>NumEntries<span class="operator">] =</span> off_left<span class="operator">;
+        ++</span>NumEntries<span class="operator">;
+      }</span><span class="flow">
+      if</span><span class="operator"> (</span>right<span class="operator"> != -</span><span class="int">1</span><span class="operator">) {</span>
+        Indices<span class="operator">[</span>NumEntries<span class="operator">] =</span> right<span class="operator">;</span>
+        Values<span class="operator">[</span>NumEntries<span class="operator">] =</span> off_right<span class="operator">;
+        ++</span>NumEntries<span class="operator">;
+      }</span><span class="flow">
+      if</span><span class="operator"> (</span>lower<span class="operator"> != -</span><span class="int">1</span><span class="operator">) {</span>
+        Indices<span class="operator">[</span>NumEntries<span class="operator">] =</span> lower<span class="operator">;</span>
+        Values<span class="operator">[</span>NumEntries<span class="operator">] =</span> off_lower<span class="operator">;
+        ++</span>NumEntries<span class="operator">;
+      }</span><span class="flow">
+      if</span><span class="operator"> (</span>upper<span class="operator"> != -</span><span class="int">1</span><span class="operator">) {</span>
+        Indices<span class="operator">[</span>NumEntries<span class="operator">] =</span> upper<span class="operator">;</span>
+        Values<span class="operator">[</span>NumEntries<span class="operator">] =</span> off_upper<span class="operator">;
+        ++</span>NumEntries<span class="operator">;
+      }</span><span class="comment">
+      // Insert the off-diagonal entries first.  This is not required
+      // for CrsMatrix, but it is apparently an old habit for many
+      // Aztec users.
+</span>      A<span class="operator">-&gt;</span>InsertGlobalValues<span class="operator"> (</span>MyGlobalElements<span class="operator">[</span>i<span class="operator">],</span> NumEntries<span class="operator">, &amp;</span>Values<span class="operator">[</span><span class="int">0</span><span class="operator">], &amp;</span>Indices<span class="operator">[</span><span class="int">0</span><span class="operator">]);</span><span class="comment">
+
+      // Insert the diagonal entry.
+</span>      A<span class="operator">-&gt;</span>InsertGlobalValues<span class="operator"> (</span>MyGlobalElements<span class="operator">[</span>i<span class="operator">],</span><span class="int"> 1</span><span class="operator">, &amp;</span>diag<span class="operator">,</span> MyGlobalElements<span class="operator">+</span>i<span class="operator">);
+    }</span><span class="comment">
+
+  // Let Epetra reorganize the matrix and compute the global ordering.
+</span>  A<span class="operator">-&gt;</span>FillComplete<span class="operator">();</span><span class="flow">
+
+  return</span> A<span class="operator">;
+}</span><span class="comment">
+
+// ==========================================================================
+// The PDEProblem class defines the nonlinear problem to solve.
+// It provides two methods:
+//
+// ComputeF: computes F(x) for a given Epetra_Vector x
+//
+// UpdateJacobian: updates the entries of the Jacobian matrix.  
+//
+// The Jacobian matrix in this case can be written as
+//
+//     J = L + diag(lambda*exp(x[i])),
+//
+// where L corresponds to the discretization of a Laplacian, and diag
+// is a diagonal matrix with entries lambda*exp(x[i]).  Thus, to
+// update the jacobian we simply update the diagonal entries, by
+// supplying x as a vector.  Similarly, to compute F(x), we reset J to
+// be equal to L, multiply it by the (distributed) vector x, and then
+// add the diagonal contribution.
+// ==========================================================================
+</span><span class="keyword">class</span> PDEProblem<span class="operator"> {</span><span class="keyword">
+public</span><span class="operator">:</span><span class="comment">
+  //
+  // Constructor.
+  //
+  // Input arguments:
+  //
+  // nx: Number of (internal) elements along the x axis.
+  // ny: Number of (internal) elements along the y axis.
+  // lambda: Scaling parameter of the Jacobian matrix.
+  // Comm: Communicator over which to distribute the matrix.
+  //
+</span>  PDEProblem<span class="operator"> (</span><span class="keyword">const</span><span class="type"> int</span> nx<span class="operator">,</span><span class="keyword"> 
+              const</span><span class="type"> int</span> ny<span class="operator">,</span><span class="keyword"> 
+              const</span><span class="type"> double</span> lambda<span class="operator">,</span><span class="keyword">
+              const</span> Epetra_Comm<span class="operator">&amp;</span> Comm<span class="operator">) :</span>
+    nx_<span class="operator">(</span>nx<span class="operator">),</span> ny_<span class="operator">(</span>ny<span class="operator">),</span> lambda_<span class="operator">(</span>lambda<span class="operator">) 
+  {</span>
+
+    hx_<span class="operator"> =</span><span class="float"> 1.0</span><span class="operator">/(</span>nx_<span class="operator">-</span><span class="int">1</span><span class="operator">);</span>
+    hy_<span class="operator"> =</span><span class="float"> 1.0</span><span class="operator">/(</span>ny_<span class="operator">-</span><span class="int">1</span><span class="operator">);</span>
+    Matrix_<span class="operator"> =</span> CreateLaplacian<span class="operator"> (</span>nx_<span class="operator">,</span>ny_<span class="operator">,</span> Comm<span class="operator">);
+  }</span><span class="comment">
+
+  // The destructor doesn't need to do anything.  RCPs are smart
+  // pointers; they handle deallocation automatically.
+</span><span class="operator">  ~</span>PDEProblem<span class="operator">() {}</span><span class="comment">
+
+  // Compute F(x).
+</span><span class="type">  void</span> 
+  ComputeF<span class="operator"> (</span><span class="keyword">const</span> Epetra_Vector<span class="operator">&amp;</span> x<span class="operator">,</span> Epetra_Vector<span class="operator">&amp;</span> f<span class="operator">) 
+  {</span><span class="comment">
+    // Reset the diagonal entries.
+</span><span class="type">    double</span> diag<span class="operator"> =</span><span class="float"> 2.0</span><span class="operator">/(</span>hx_<span class="operator">*</span>hx_<span class="operator">) +</span><span class="float"> 2.0</span><span class="operator">/(</span>hy_<span class="operator">*</span>hy_<span class="operator">);</span><span class="type">
+
+    int</span> NumMyElements<span class="operator"> =</span> Matrix_<span class="operator">-&gt;</span>Map<span class="operator">().</span>NumMyElements<span class="operator">();</span><span class="comment">
+
+    // Get the list of the global elements that belong to my MPI process.
+</span><span class="type">    int</span><span class="operator">*</span> MyGlobalElements<span class="operator"> =</span> Matrix_<span class="operator">-&gt;</span>Map<span class="operator"> ().</span>MyGlobalElements<span class="operator"> ();</span><span class="flow">
+
+    for</span><span class="operator"> (</span><span class="type">int</span> i<span class="operator"> =</span><span class="int"> 0</span><span class="operator">;</span> i<span class="operator"> &lt;</span> NumMyElements<span class="operator">; ++</span>i<span class="operator">) {</span><span class="comment">
+      // Update the diagonal entry of the matrix.
+</span>      Matrix_<span class="operator">-&gt;</span>ReplaceGlobalValues<span class="operator"> (</span>MyGlobalElements<span class="operator">[</span>i<span class="operator">],</span><span class="int"> 1</span><span class="operator">, &amp;</span>diag<span class="operator">,</span> MyGlobalElements<span class="operator">+</span>i<span class="operator">);
+    }</span><span class="comment">
+    // Sparse matrix-vector product.  
+    // Interprocess communication happens here.
+</span>    Matrix_<span class="operator">-&gt;</span>Multiply<span class="operator"> (</span><span class="bool">false</span><span class="operator">,</span> x<span class="operator">,</span> f<span class="operator">);</span><span class="flow">
+
+    for</span><span class="operator"> (</span><span class="type">int</span> i<span class="operator"> =</span><span class="int"> 0</span><span class="operator">;</span> i<span class="operator"> &lt;</span> NumMyElements<span class="operator">; ++</span>i<span class="operator">) {</span><span class="comment">
+      // Include the contribution from the current diagonal entry.
+</span>      f<span class="operator">[</span>i<span class="operator">] +=</span> lambda_<span class="operator">*</span>exp<span class="operator">(</span>x<span class="operator">[</span>i<span class="operator">]);
+    }
+  }</span><span class="comment">
+
+  // Update the Jacobian matrix for a given vector x (see class
+  // documentation for an explanation of how x contributes to the
+  // update formula).
+</span><span class="type">  void</span> 
+  UpdateJacobian<span class="operator"> (</span><span class="keyword">const</span> Epetra_Vector<span class="operator"> &amp;</span> x<span class="operator">) 
+  {</span><span class="type">
+    double</span> diag<span class="operator"> =</span><span class="float">  2.0</span><span class="operator">/(</span>hx_<span class="operator">*</span>hx_<span class="operator">) +</span><span class="float"> 2.0</span><span class="operator">/(</span>hy_<span class="operator">*</span>hy_<span class="operator">);</span><span class="type">
+
+    int</span> NumMyElements<span class="operator"> =</span> Matrix_<span class="operator">-&gt;</span>Map<span class="operator"> ().</span>NumMyElements<span class="operator"> ();</span><span class="comment">
+
+    // Get the list of the global elements that belong to my MPI process.
+</span><span class="type">    int</span><span class="operator">*</span> MyGlobalElements<span class="operator"> =</span> Matrix_<span class="operator">-&gt;</span>Map<span class="operator"> ().</span>MyGlobalElements<span class="operator"> ();</span><span class="flow">
+
+    for</span><span class="operator"> (</span><span class="type">int</span> i<span class="operator"> =</span><span class="int"> 0</span><span class="operator">;</span> i<span class="operator"> &lt;</span> NumMyElements<span class="operator">; ++</span>i<span class="operator">) {</span><span class="comment">
+      // Update the current diagonal entry.
+</span><span class="type">      double</span> newdiag<span class="operator"> =</span> diag<span class="operator"> +</span> lambda_<span class="operator">*</span>exp<span class="operator">(</span>x<span class="operator">[</span>i<span class="operator">]);</span>
+      Matrix_<span class="operator">-&gt;</span>ReplaceGlobalValues<span class="operator"> (</span>MyGlobalElements<span class="operator">[</span>i<span class="operator">],</span><span class="int"> 1</span><span class="operator">, 
+                                    &amp;</span>newdiag<span class="operator">,</span> MyGlobalElements<span class="operator">+</span>i<span class="operator">);
+    }
+
+  }</span><span class="comment">
+
+  // Return a pointer to the internally stored matrix.
+</span>  Teuchos<span class="operator">::</span>RCP<span class="operator">&lt;</span>Epetra_CrsMatrix<span class="operator">&gt;</span> GetMatrix<span class="operator">() {</span><span class="flow">
+    return</span> Matrix_<span class="operator">;
+  }</span><span class="keyword">
+
+private</span><span class="operator">:</span><span class="type">
+  int</span> nx_<span class="operator">,</span> ny_<span class="operator">;</span><span class="type">
+  double</span> hx_<span class="operator">,</span> hy_<span class="operator">;</span>
+  Teuchos<span class="operator">::</span>RCP<span class="operator">&lt;</span>Epetra_CrsMatrix<span class="operator">&gt;</span> Matrix_<span class="operator">;</span><span class="type">
+  double</span> lambda_<span class="operator">;
+};</span><span class="comment">
+
+// ==========================================================================
+// SimpleProblemInterface defines the interface between NOX and our
+// nonlinear problem to solve.  Its constructor accepts a PDEProblem
+// object, which it uses to update the Jacobian and compute F(x).
+// This interface is a bit crude; for example, it does not provide a
+// PrecMatrix or Preconditioner.
+// ==========================================================================
+</span><span class="keyword">class</span> SimpleProblemInterface<span class="operator"> :</span><span class="keyword"> 
+  public</span> NOX<span class="operator">::</span>Epetra<span class="operator">::</span>Interface<span class="operator">::</span>Required<span class="operator">,</span><span class="keyword">
+  public</span> NOX<span class="operator">::</span>Epetra<span class="operator">::</span>Interface<span class="operator">::</span>Jacobian<span class="operator">
+{</span><span class="keyword">
+public</span><span class="operator">:</span><span class="comment">
+
+  // The constructor takes a PDEProblem pointer.
+</span>  SimpleProblemInterface<span class="operator"> (</span>Teuchos<span class="operator">::</span>RCP<span class="operator">&lt;</span>PDEProblem<span class="operator">&gt;</span> Problem<span class="operator">) :</span>
+    Problem_<span class="operator">(</span>Problem<span class="operator">) 
+  {}</span><span class="comment">
+
+  // The destructor doesn't need to do anything, because RCPs are
+  // smart pointers; they handle deallocation automatically.
+</span><span class="operator">  ~</span>SimpleProblemInterface<span class="operator">() {}</span><span class="type">
+
+  bool</span> 
+  computeF<span class="operator"> (</span><span class="keyword">const</span> Epetra_Vector<span class="operator">&amp;</span> x<span class="operator">,</span> 
+            Epetra_Vector<span class="operator">&amp;</span> f<span class="operator">,</span>
+            NOX<span class="operator">::</span>Epetra<span class="operator">::</span>Interface<span class="operator">::</span>Required<span class="operator">::</span>FillType F<span class="operator">)
+  {</span>
+    Problem_<span class="operator">-&gt;</span>ComputeF<span class="operator"> (</span>x<span class="operator">,</span> f<span class="operator">);</span><span class="flow">
+    return</span><span class="bool"> true</span><span class="operator">;
+  }</span><span class="type">
+
+  bool</span> 
+  computeJacobian<span class="operator"> (</span><span class="keyword">const</span> Epetra_Vector<span class="operator">&amp;</span> x<span class="operator">,</span> Epetra_Operator<span class="operator">&amp;</span> Jac<span class="operator">)
+  {</span>
+    Problem_<span class="operator">-&gt;</span>UpdateJacobian<span class="operator"> (</span>x<span class="operator">);</span><span class="flow">
+    return</span><span class="bool"> true</span><span class="operator">;
+  }</span><span class="type">
+
+  bool</span> 
+  computePrecMatrix<span class="operator"> (</span><span class="keyword">const</span> Epetra_Vector<span class="operator">&amp;</span> x<span class="operator">,</span> Epetra_RowMatrix<span class="operator">&amp;</span> M<span class="operator">) 
+  {</span><span class="flow">
+    throw</span> std<span class="operator">::</span>runtime_error<span class="operator"> (</span><span class="string">"*** SimpleProblemInterface does not implement "
+                              "computing an explicit preconditioner from an "
+                              "Epetra_RowMatrix ***"</span><span class="operator">);
+  }</span><span class="type">  
+
+  bool</span> 
+  computePreconditioner<span class="operator">(</span><span class="keyword">const</span> Epetra_Vector<span class="operator"> &amp;</span> x<span class="operator">,</span> Epetra_Operator<span class="operator"> &amp;</span> O<span class="operator">)
+  {</span><span class="flow">
+    throw</span> std<span class="operator">::</span>runtime_error<span class="operator"> (</span><span class="string">"*** SimpleProblemInterface does not implement "
+                              "computing an explicit preconditioner from an "
+                              "Epetra_Operator ***"</span><span class="operator">);
+  }</span><span class="keyword">  
+
+private</span><span class="operator">:</span>
+  Teuchos<span class="operator">::</span>RCP<span class="operator">&lt;</span>PDEProblem<span class="operator">&gt;</span> Problem_<span class="operator">;
+};</span><span class="comment">
+
+//
+// Test driver routine.
+//
+</span><span class="type">int</span><span class="keyword"> 
+main</span><span class="operator"> (</span><span class="type">int</span> argc<span class="operator">,</span><span class="type"> char</span><span class="operator"> **</span>argv<span class="operator">)
+{</span><span class="keyword">
+  using</span> Teuchos<span class="operator">::</span>ParameterList<span class="operator">;</span><span class="keyword">
+  using</span> Teuchos<span class="operator">::</span>parameterList<span class="operator">;</span><span class="keyword">
+  using</span> Teuchos<span class="operator">::</span>RCP<span class="operator">;</span><span class="keyword">
+  using</span> Teuchos<span class="operator">::</span>rcp<span class="operator">;</span><span class="pre">
+
+#ifdef HAVE_MPI
+</span>  MPI_Init<span class="operator">(&amp;</span>argc<span class="operator">, &amp;</span>argv<span class="operator">);</span>
+  Epetra_MpiComm Comm<span class="operator">(</span>MPI_COMM_WORLD<span class="operator">);</span><span class="pre">
+#else
+</span>  Epetra_SerialComm Comm<span class="operator">;</span><span class="pre">
+#endif
+</span><span class="comment">
+  // Parameters for setting up the nonlinear PDE.  The 2-D regular
+  // mesh on which the PDE's discretization is defined is nx by ny
+  // (internal nodes; we assume Dirichlet boundary conditions have
+  // been condensed out).
+</span><span class="keyword">  const</span><span class="type"> int</span> nx<span class="operator"> =</span><span class="int"> 5</span><span class="operator">;</span><span class="keyword">
+  const</span><span class="type"> int</span> ny<span class="operator"> =</span><span class="int"> 6</span><span class="operator">;</span><span class="keyword">  
+  const</span><span class="type"> double</span> lambda<span class="operator"> =</span><span class="float"> 1.0</span><span class="operator">;</span>
+
+  RCP<span class="operator">&lt;</span>PDEProblem<span class="operator">&gt;</span> Problem<span class="operator"> =</span> rcp<span class="operator"> (</span><span class="keyword">new</span> PDEProblem<span class="operator"> (</span>nx<span class="operator">,</span> ny<span class="operator">,</span> lambda<span class="operator">,</span> Comm<span class="operator">));</span><span class="comment">
+
+  // Prepare the initial guess vector.  It should be a vector in the
+  // domain of the nonlinear problem's matrix.
+</span>  Epetra_Vector InitialGuess<span class="operator"> (</span>Problem<span class="operator">-&gt;</span>GetMatrix<span class="operator"> ()-&gt;</span>OperatorDomainMap<span class="operator"> ());</span><span class="comment">
+
+  // Make the starting solution a zero vector.
+</span>  InitialGuess<span class="operator">.</span>PutScalar<span class="operator">(</span><span class="float">0.0</span><span class="operator">);</span><span class="comment">
+
+  // Set up the problem interface.
+</span>  RCP<span class="operator">&lt;</span>SimpleProblemInterface<span class="operator">&gt;</span> interface<span class="operator"> =</span> 
+    rcp<span class="operator"> (</span><span class="keyword">new</span> SimpleProblemInterface<span class="operator"> (</span>Problem<span class="operator">));</span><span class="comment">
+
+  // Create the top-level parameter list to control NOX.
+  //
+  // "parameterList" (lowercase initial "p") is a "nonmember
+  // constructor" that returns an RCP&lt;ParameterList&gt; with the
+  // given name.
+</span>  RCP<span class="operator">&lt;</span>ParameterList<span class="operator">&gt;</span> params<span class="operator"> =</span> parameterList<span class="operator"> (</span><span class="string">"NOX"</span><span class="operator">);</span><span class="comment">
+
+  // Tell the nonlinear solver to use line search.
+</span>  params<span class="operator">-&gt;</span>set<span class="operator"> (</span><span class="string">"Nonlinear Solver"</span><span class="operator">,</span><span class="string"> "Line Search Based"</span><span class="operator">);</span><span class="comment">
+
+  //
+  // Set the printing parameters in the "Printing" sublist.
+  //
+</span>  ParameterList<span class="operator">&amp;</span> printParams<span class="operator"> =</span> params<span class="operator">-&gt;</span>sublist<span class="operator"> (</span><span class="string">"Printing"</span><span class="operator">);</span>
+  printParams<span class="operator">.</span>set<span class="operator"> (</span><span class="string">"MyPID"</span><span class="operator">,</span> Comm<span class="operator">.</span>MyPID<span class="operator"> ());</span> 
+  printParams<span class="operator">.</span>set<span class="operator"> (</span><span class="string">"Output Precision"</span><span class="operator">,</span><span class="int"> 3</span><span class="operator">);</span>
+  printParams<span class="operator">.</span>set<span class="operator"> (</span><span class="string">"Output Processor"</span><span class="operator">,</span><span class="int"> 0</span><span class="operator">);</span>
+  printParams<span class="operator">.</span>set<span class="operator"> (</span><span class="string">"Output Information"</span><span class="operator">,</span> 
+                   NOX<span class="operator">::</span>Utils<span class="operator">::</span>OuterIteration<span class="operator"> +</span> 
+                   NOX<span class="operator">::</span>Utils<span class="operator">::</span>OuterIterationStatusTest<span class="operator"> +</span> 
+                   NOX<span class="operator">::</span>Utils<span class="operator">::</span>InnerIteration<span class="operator"> +</span>
+                   NOX<span class="operator">::</span>Utils<span class="operator">::</span>Parameters<span class="operator"> +</span> 
+                   NOX<span class="operator">::</span>Utils<span class="operator">::</span>Details<span class="operator"> +</span> 
+                   NOX<span class="operator">::</span>Utils<span class="operator">::</span>Warning<span class="operator">);</span><span class="comment">
+  //
+  // Set the nonlinear solver parameters.
+  //
+
+  // Line search parameters.
+</span>  ParameterList<span class="operator">&amp;</span> searchParams<span class="operator"> =</span> params<span class="operator">-&gt;</span>sublist<span class="operator"> (</span><span class="string">"Line Search"</span><span class="operator">);</span>
+  searchParams<span class="operator">.</span>set<span class="operator"> (</span><span class="string">"Method"</span><span class="operator">,</span><span class="string"> "More'-Thuente"</span><span class="operator">);</span><span class="comment">
+
+  // Parameters for picking the search direction.
+</span>  Teuchos<span class="operator">::</span>ParameterList<span class="operator">&amp;</span> dirParams<span class="operator"> =</span> params<span class="operator">-&gt;</span>sublist<span class="operator"> (</span><span class="string">"Direction"</span><span class="operator">);</span><span class="comment">
+  // Use Newton's method to pick the search direction.
+</span>  dirParams<span class="operator">.</span>set<span class="operator"> (</span><span class="string">"Method"</span><span class="operator">,</span><span class="string"> "Newton"</span><span class="operator">);</span><span class="comment">
+
+  // Parameters for Newton's method.
+</span>  ParameterList<span class="operator">&amp;</span> newtonParams<span class="operator"> =</span> dirParams<span class="operator">.</span>sublist<span class="operator"> (</span><span class="string">"Newton"</span><span class="operator">);</span>
+  newtonParams<span class="operator">.</span>set<span class="operator"> (</span><span class="string">"Forcing Term Method"</span><span class="operator">,</span><span class="string"> "Constant"</span><span class="operator">);</span><span class="comment">
+  
+  //
+  // Newton's method invokes a linear solver repeatedly.
+  // Set the parameters for the linear solver.
+  //
+</span>  ParameterList<span class="operator">&amp;</span> lsParams<span class="operator"> =</span> newtonParams<span class="operator">.</span>sublist<span class="operator"> (</span><span class="string">"Linear Solver"</span><span class="operator">);</span><span class="comment">
+
+  // Use Aztec's implementation of GMRES, with at most 800 iterations,
+  // a residual tolerance of 1.0e-4, with output every 50 iterations,
+  // and Aztec's native ILU preconditioner.
+</span>  lsParams<span class="operator">.</span>set<span class="operator"> (</span><span class="string">"Aztec Solver"</span><span class="operator">,</span><span class="string"> "GMRES"</span><span class="operator">);</span>  
+  lsParams<span class="operator">.</span>set<span class="operator"> (</span><span class="string">"Max Iterations"</span><span class="operator">,</span><span class="int"> 800</span><span class="operator">);</span>  
+  lsParams<span class="operator">.</span>set<span class="operator"> (</span><span class="string">"Tolerance"</span><span class="operator">,</span><span class="float"> 1e-4</span><span class="operator">);</span>
+  lsParams<span class="operator">.</span>set<span class="operator"> (</span><span class="string">"Output Frequency"</span><span class="operator">,</span><span class="int"> 50</span><span class="operator">);</span>    
+  lsParams<span class="operator">.</span>set<span class="operator"> (</span><span class="string">"Aztec Preconditioner"</span><span class="operator">,</span><span class="string"> "ilu"</span><span class="operator">);</span> 
+
+  RCP<span class="operator">&lt;</span>Epetra_CrsMatrix<span class="operator">&gt;</span> A<span class="operator"> =</span> Problem<span class="operator">-&gt;</span>GetMatrix<span class="operator">();</span><span class="comment">
+
+  // Our SimpleProblemInterface implements both Required and
+  // Jacobian, so we can use the same object for each.
+</span>  RCP<span class="operator">&lt;</span>NOX<span class="operator">::</span>Epetra<span class="operator">::</span>Interface<span class="operator">::</span>Required<span class="operator">&gt;</span> iReq<span class="operator"> =</span> interface<span class="operator">;</span>
+  RCP<span class="operator">&lt;</span>NOX<span class="operator">::</span>Epetra<span class="operator">::</span>Interface<span class="operator">::</span>Jacobian<span class="operator">&gt;</span> iJac<span class="operator"> =</span> interface<span class="operator">;</span>
+
+  RCP<span class="operator">&lt;</span>NOX<span class="operator">::</span>Epetra<span class="operator">::</span>LinearSystemAztecOO<span class="operator">&gt;</span> linSys<span class="operator"> =</span> 
+    rcp<span class="operator"> (</span><span class="keyword">new</span> NOX<span class="operator">::</span>Epetra<span class="operator">::</span>LinearSystemAztecOO<span class="operator"> (</span>printParams<span class="operator">,</span> lsParams<span class="operator">,</span>
+                                               iReq<span class="operator">,</span> iJac<span class="operator">,</span> A<span class="operator">,</span> InitialGuess<span class="operator">));</span><span class="comment">
+
+  // Need a NOX::Epetra::Vector for constructor.
+</span>  NOX<span class="operator">::</span>Epetra<span class="operator">::</span>Vector noxInitGuess<span class="operator"> (</span>InitialGuess<span class="operator">,</span> NOX<span class="operator">::</span>DeepCopy<span class="operator">);</span>
+  RCP<span class="operator">&lt;</span>NOX<span class="operator">::</span>Epetra<span class="operator">::</span>Group<span class="operator">&gt;</span> group<span class="operator"> =</span> 
+    rcp<span class="operator"> (</span><span class="keyword">new</span> NOX<span class="operator">::</span>Epetra<span class="operator">::</span>Group<span class="operator"> (</span>printParams<span class="operator">,</span> iReq<span class="operator">,</span> noxInitGuess<span class="operator">,</span> linSys<span class="operator">));</span><span class="comment">
+
+  //
+  // Set up NOX's iteration stopping criteria ("status tests").
+  //
+
+  // ||F(X)||_2 / N &lt; 1.0e-4, where N is the length of F(X).
+  //
+  // NormF has many options for setting up absolute vs. relative
+  // (scaled by the norm of the initial guess) tolerances, scaling or
+  // not scaling by the length of F(X), and choosing a different norm
+  // (we use the 2-norm here).
+</span>  RCP<span class="operator">&lt;</span>NOX<span class="operator">::</span>StatusTest<span class="operator">::</span>NormF<span class="operator">&gt;</span> testNormF<span class="operator"> =</span> 
+    rcp<span class="operator"> (</span><span class="keyword">new</span> NOX<span class="operator">::</span>StatusTest<span class="operator">::</span>NormF<span class="operator"> (</span><span class="float">1.0e-4</span><span class="operator">));</span><span class="comment">
+
+  // At most 20 (nonlinear) iterations.
+</span>  RCP<span class="operator">&lt;</span>NOX<span class="operator">::</span>StatusTest<span class="operator">::</span>MaxIters<span class="operator">&gt;</span> testMaxIters<span class="operator"> =</span> 
+    rcp<span class="operator"> (</span><span class="keyword">new</span> NOX<span class="operator">::</span>StatusTest<span class="operator">::</span>MaxIters<span class="operator"> (</span><span class="int">20</span><span class="operator">));</span><span class="comment">
+
+  // Combine the above two stopping criteria (normwise convergence,
+  // and maximum number of nonlinear iterations).  The result tells
+  // NOX to stop if at least one of them is satisfied.
+</span>  RCP<span class="operator">&lt;</span>NOX<span class="operator">::</span>StatusTest<span class="operator">::</span>Combo<span class="operator">&gt;</span> combo<span class="operator"> =</span> 
+    rcp<span class="operator"> (</span><span class="keyword">new</span> NOX<span class="operator">::</span>StatusTest<span class="operator">::</span>Combo<span class="operator"> (</span>NOX<span class="operator">::</span>StatusTest<span class="operator">::</span>Combo<span class="operator">::</span>OR<span class="operator">,</span> 
+                                     testNormF<span class="operator">,</span> testMaxIters<span class="operator">));</span><span class="comment">
+
+  // Create the NOX nonlinear solver.
+</span>  RCP<span class="operator">&lt;</span>NOX<span class="operator">::</span>Solver<span class="operator">::</span>Generic<span class="operator">&gt;</span> solver<span class="operator"> =</span> 
+    NOX<span class="operator">::</span>Solver<span class="operator">::</span>buildSolver<span class="operator"> (</span>group<span class="operator">,</span> combo<span class="operator">,</span> params<span class="operator">);</span><span class="comment">
+
+  // Solve the nonlinear system.
+</span>  NOX<span class="operator">::</span>StatusTest<span class="operator">::</span>StatusType status<span class="operator"> =</span> solver<span class="operator">-&gt;</span>solve<span class="operator">();</span><span class="comment">
+
+  // Print the result.
+</span><span class="flow">  if</span><span class="operator"> (</span>Comm<span class="operator">.</span>MyPID<span class="operator">() ==</span><span class="int"> 0</span><span class="operator">) {</span>
+    cout<span class="operator"> &lt;&lt;</span> endl<span class="operator"> &lt;&lt;</span><span class="string"> "-- Parameter List From Solver --"</span><span class="operator"> &lt;&lt;</span> endl<span class="operator">;</span>
+    solver<span class="operator">-&gt;</span>getList<span class="operator"> ().</span>print<span class="operator"> (</span>cout<span class="operator">);
+  }</span><span class="comment">
+
+  // Get the Epetra_Vector with the final solution from the solver.
+</span><span class="keyword">  const</span> NOX<span class="operator">::</span>Epetra<span class="operator">::</span>Group<span class="operator">&amp;</span> finalGroup<span class="operator"> =</span><span class="keyword"> 
+    dynamic_cast</span><span class="operator">&lt;</span><span class="keyword">const</span> NOX<span class="operator">::</span>Epetra<span class="operator">::</span>Group<span class="operator">&amp;&gt; (</span>solver<span class="operator">-&gt;</span>getSolutionGroup<span class="operator"> ());</span><span class="keyword">
+
+  const</span> Epetra_Vector<span class="operator">&amp;</span> finalSolution<span class="operator"> =</span><span class="keyword"> 
+    dynamic_cast</span><span class="operator">&lt;</span><span class="keyword">const</span> NOX<span class="operator">::</span>Epetra<span class="operator">::</span>Vector<span class="operator">&amp;&gt; (</span>finalGroup<span class="operator">.</span>getX<span class="operator">
+    ()).</span>getEpetraVector<span class="operator"> ();</span><span class="comment">
+
+  // Add a barrier and flush cout, just to make it less likely that
+  // the output will get mixed up when running with multiple MPI
+  // processes.
+</span>  Comm<span class="operator">.</span>Barrier<span class="operator"> ();</span>
+  cout<span class="operator">.</span>flush<span class="operator"> ();</span><span class="flow">
+
+  if</span><span class="operator"> (</span>Comm<span class="operator">.</span>MyPID<span class="operator">() ==</span><span class="int"> 0</span><span class="operator">) {</span>
+    cout<span class="operator"> &lt;&lt;</span><span class="string"> "Computed solution : "</span><span class="operator"> &lt;&lt;</span> endl<span class="operator">;
+  }</span><span class="comment">
+
+  // Add a barrier and flush cout, so that the above header line
+  // appears before the rest of the vector data.
+</span>  Comm<span class="operator">.</span>Barrier<span class="operator"> ();</span>
+  cout<span class="operator">.</span>flush<span class="operator"> ();</span><span class="comment">
+
+  // Epetra objects know how to print themselves politely when
+  // their operator&lt;&lt;(std::ostream&amp;) is invoked on all MPI
+  // process(es) in the communicator to which they are associated.
+</span>  cout<span class="operator"> &lt;&lt;</span> finalSolution<span class="operator">;</span><span class="pre">
+
+#ifdef HAVE_MPI
+</span>  MPI_Finalize<span class="operator">();</span><span class="pre">
+#endif
+</span><span class="flow">  return</span> EXIT_SUCCESS<span class="operator">;
+}</span>
+
+
+
+</pre>
+
+
+</body></html>

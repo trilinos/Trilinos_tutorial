@@ -1,0 +1,153 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>C++ code colored by C++2HTML</title>
+<meta name="generator" content="C++2HTML by Jasper Bedaux">
+<!-- To generate your own colored code visit http://www.bedaux.net/cpp2html/ -->
+<style type="text/css">
+.comment { color: #999999; font-style: italic; }
+.pre { color: #000099; }
+.string { color: #009900; }
+.char { color: #009900; }
+.float { color: #996600; }
+.int { color: #999900; }
+.bool { color: #000000; font-weight: bold; }
+.type { color: #FF6633; }
+.flow { color: #FF0000; }
+.keyword { color: #990000; }
+.operator { color: #663300; font-weight: bold; }
+.operator { color: #663300; font-weight: bold; }
+</style>
+</head>
+<body>
+<pre><span class="pre">#include "Epetra_CrsMatrix.h"
+#include "Epetra_MultiVector.h"
+#include "Galeri_Maps.h"
+#include "Galeri_CrsMatrices.h"
+#include "Teuchos_ParameterList.hpp"
+#include "Teuchos_RCP.hpp"
+#include "AnasaziBasicEigenproblem.hpp"
+#include "AnasaziLOBPCGSolMgr.hpp"
+#include "AnasaziEpetraAdapter.hpp"
+#ifdef HAVE_MPI
+#include "Epetra_MpiComm.h"
+#else
+#include "Epetra_SerialComm.h"
+#endif
+
+#include "../../aprepro_vhelp.h"
+</span><span class="type">
+int</span><span class="keyword"> main</span><span class="operator">(</span><span class="type">int</span> argc<span class="operator">,</span><span class="type"> char</span><span class="operator"> *</span>argv<span class="operator">[])
+{</span><span class="pre">
+
+#ifdef HAVE_MPI
+</span>  MPI_Init<span class="operator">(&amp;</span>argc<span class="operator">,&amp;</span>argv<span class="operator">);</span>
+  Epetra_MpiComm Comm<span class="operator">(</span> MPI_COMM_WORLD<span class="operator"> );</span><span class="pre">
+#else
+</span>  Epetra_SerialComm Comm<span class="operator">;</span><span class="pre">
+#endif
+</span>
+  Teuchos<span class="operator">::</span>ParameterList GaleriList<span class="operator">;</span><span class="comment">
+
+  // The problem is defined on a 2D grid, global size is nx * nx.
+</span><span class="type">  int</span> nx<span class="operator"> =</span><span class="int"> 30</span><span class="operator">;</span> 
+  GaleriList<span class="operator">.</span>set<span class="operator">(</span><span class="string">"n"</span><span class="operator">,</span> nx<span class="operator"> *</span> nx<span class="operator">);</span>
+  GaleriList<span class="operator">.</span>set<span class="operator">(</span><span class="string">"nx"</span><span class="operator">,</span> nx<span class="operator">);</span>
+  GaleriList<span class="operator">.</span>set<span class="operator">(</span><span class="string">"ny"</span><span class="operator">,</span> nx<span class="operator">);</span>
+  Teuchos<span class="operator">::</span>RCP<span class="operator">&lt;</span>Epetra_Map<span class="operator">&gt;</span> Map<span class="operator"> =</span> Teuchos<span class="operator">::</span>rcp<span class="operator">(</span> Galeri<span class="operator">::</span>CreateMap<span class="operator">(</span><span class="string">"Linear"</span><span class="operator">,</span> Comm<span class="operator">,</span> GaleriList<span class="operator">) );</span>
+  Teuchos<span class="operator">::</span>RCP<span class="operator">&lt;</span>Epetra_RowMatrix<span class="operator">&gt;</span> A<span class="operator"> =</span> Teuchos<span class="operator">::</span>rcp<span class="operator">(</span> Galeri<span class="operator">::</span>CreateCrsMatrix<span class="operator">(</span><span class="string">"Laplace2D"</span><span class="operator">, &amp;*</span>Map<span class="operator">,</span> GaleriList<span class="operator">) );</span><span class="comment">
+
+  //  Variables used for the Block Davidson Method
+</span><span class="keyword">  const</span><span class="type"> int</span>    nev<span class="operator">         =</span><span class="int"> 4</span><span class="operator">;</span><span class="keyword">
+  const</span><span class="type"> int</span>    blockSize<span class="operator">   =</span><span class="int"> 5</span><span class="operator">;</span><span class="keyword">
+  const</span><span class="type"> int</span>    numBlocks<span class="operator">   =</span><span class="int"> 8</span><span class="operator">;</span><span class="keyword">
+  const</span><span class="type"> int</span>    maxRestarts<span class="operator"> =</span><span class="int"> 100</span><span class="operator">;</span><span class="keyword">
+  const</span><span class="type"> double</span> tol<span class="operator">         =</span><span class="float"> 1.0e-8</span><span class="operator">;</span><span class="keyword">
+
+  typedef</span> Epetra_MultiVector MV<span class="operator">;</span><span class="keyword">
+  typedef</span> Epetra_Operator OP<span class="operator">;</span><span class="keyword">
+  typedef</span> Anasazi<span class="operator">::</span>MultiVecTraits<span class="operator">&lt;</span><span class="type">double</span><span class="operator">,</span> Epetra_MultiVector<span class="operator">&gt;</span> MVT<span class="operator">;</span><span class="comment">
+
+  // Create an Epetra_MultiVector for an initial vector to start the solver.
+  // Note:  This needs to have the same number of columns as the blocksize.
+  //
+</span>  Teuchos<span class="operator">::</span>RCP<span class="operator">&lt;</span>Epetra_MultiVector<span class="operator">&gt;</span> ivec<span class="operator"> =</span> Teuchos<span class="operator">::</span>rcp<span class="operator">(</span><span class="keyword"> new</span> Epetra_MultiVector<span class="operator">(*</span>Map<span class="operator">,</span> blockSize<span class="operator">) );</span>
+  ivec<span class="operator">-&gt;</span>Random<span class="operator">();</span><span class="comment">
+
+  // Create the eigenproblem.
+</span>  Teuchos<span class="operator">::</span>RCP<span class="operator">&lt;</span>Anasazi<span class="operator">::</span>BasicEigenproblem<span class="operator">&lt;</span><span class="type">double</span><span class="operator">,</span> MV<span class="operator">,</span> OP<span class="operator">&gt; &gt;</span> problem<span class="operator"> =</span>
+    Teuchos<span class="operator">::</span>rcp<span class="operator">(</span><span class="keyword"> new</span> Anasazi<span class="operator">::</span>BasicEigenproblem<span class="operator">&lt;</span><span class="type">double</span><span class="operator">,</span> MV<span class="operator">,</span> OP<span class="operator">&gt;(</span>A<span class="operator">,</span> ivec<span class="operator">) );</span><span class="comment">
+
+  // Inform the eigenproblem that the operator A is symmetric
+</span>  problem<span class="operator">-&gt;</span>setHermitian<span class="operator">(</span><span class="bool">true</span><span class="operator">);</span><span class="comment">
+
+  // Set the number of eigenvalues requested
+</span>  problem<span class="operator">-&gt;</span>setNEV<span class="operator">(</span> nev<span class="operator"> );</span><span class="comment">
+
+  // Inform the eigenproblem that you are finishing passing it information
+</span><span class="type">  bool</span> boolret<span class="operator"> =</span> problem<span class="operator">-&gt;</span>setProblem<span class="operator">();</span><span class="flow">
+  if</span><span class="operator"> (</span>boolret<span class="operator"> !=</span><span class="bool"> true</span><span class="operator">) {</span>
+    std<span class="operator">::</span>cout<span class="operator">&lt;&lt;</span><span class="string">"Anasazi::BasicEigenproblem::setProblem() returned an error."</span><span class="operator"> &lt;&lt;</span> std<span class="operator">::</span>endl<span class="operator">;</span><span class="pre">
+#ifdef HAVE_MPI
+</span>    MPI_Finalize<span class="operator">();</span><span class="pre">
+#endif
+</span><span class="flow">    return</span><span class="operator"> -</span><span class="int">1</span><span class="operator">;
+  }</span><span class="comment">
+
+  // Create parameter list to pass into the solver manager
+</span>  Teuchos<span class="operator">::</span>ParameterList anasaziPL<span class="operator">;</span>
+  anasaziPL<span class="operator">.</span>set<span class="operator">(</span><span class="string"> "Which"</span><span class="operator">,</span><span class="string"> "LM"</span><span class="operator"> );</span>
+  anasaziPL<span class="operator">.</span>set<span class="operator">(</span><span class="string"> "Block Size"</span><span class="operator">,</span> blockSize<span class="operator"> );</span>
+  anasaziPL<span class="operator">.</span>set<span class="operator">(</span><span class="string"> "Maximum Iterations"</span><span class="operator">,</span><span class="int"> 500</span><span class="operator"> );</span>
+  anasaziPL<span class="operator">.</span>set<span class="operator">(</span><span class="string"> "Convergence Tolerance"</span><span class="operator">,</span> tol<span class="operator"> );</span>
+  anasaziPL<span class="operator">.</span>set<span class="operator">(</span><span class="string"> "Verbosity"</span><span class="operator">,</span> Anasazi<span class="operator">::</span>Errors<span class="operator">+</span>Anasazi<span class="operator">::</span>Warnings<span class="operator">+</span>Anasazi<span class="operator">::</span>TimingDetails<span class="operator">+</span>Anasazi<span class="operator">::</span>FinalSummary<span class="operator"> );</span><span class="comment">
+
+  // Create the solver manager
+</span>  Anasazi<span class="operator">::</span>LOBPCGSolMgr<span class="operator">&lt;</span><span class="type">double</span><span class="operator">,</span> MV<span class="operator">,</span> OP<span class="operator">&gt;</span> anasaziSolver<span class="operator">(</span>problem<span class="operator">,</span> anasaziPL<span class="operator">);</span><span class="comment">
+
+  // Solve the problem
+</span>  Anasazi<span class="operator">::</span>ReturnType returnCode<span class="operator"> =</span> anasaziSolver<span class="operator">.</span>solve<span class="operator">();</span><span class="comment">
+
+  // Get the eigenvalues and eigenvectors from the eigenproblem
+</span>  Anasazi<span class="operator">::</span>Eigensolution<span class="operator">&lt;</span><span class="type">double</span><span class="operator">,</span>MV<span class="operator">&gt;</span> sol<span class="operator"> =</span> problem<span class="operator">-&gt;</span>getSolution<span class="operator">();</span>
+  std<span class="operator">::</span>vector<span class="operator">&lt;</span>Anasazi<span class="operator">::</span>Value<span class="operator">&lt;</span><span class="type">double</span><span class="operator">&gt; &gt;</span> evals<span class="operator"> =</span> sol<span class="operator">.</span>Evals<span class="operator">;</span>
+  Teuchos<span class="operator">::</span>RCP<span class="operator">&lt;</span>MV<span class="operator">&gt;</span> evecs<span class="operator"> =</span> sol<span class="operator">.</span>Evecs<span class="operator">;</span><span class="comment">
+
+  // Compute residuals.
+</span>  std<span class="operator">::</span>vector<span class="operator">&lt;</span><span class="type">double</span><span class="operator">&gt;</span> normR<span class="operator">(</span>sol<span class="operator">.</span>numVecs<span class="operator">);</span><span class="flow">
+  if</span><span class="operator"> (</span>sol<span class="operator">.</span>numVecs<span class="operator"> &gt;</span><span class="int"> 0</span><span class="operator">) {</span>
+    Teuchos<span class="operator">::</span>SerialDenseMatrix<span class="operator">&lt;</span><span class="type">int</span><span class="operator">,</span><span class="type">double</span><span class="operator">&gt;</span> T<span class="operator">(</span>sol<span class="operator">.</span>numVecs<span class="operator">,</span> sol<span class="operator">.</span>numVecs<span class="operator">);</span>
+    Epetra_MultiVector tempAevec<span class="operator">( *</span>Map<span class="operator">,</span> sol<span class="operator">.</span>numVecs<span class="operator"> );</span>
+    T<span class="operator">.</span>putScalar<span class="operator">(</span><span class="float">0.0</span><span class="operator">);</span><span class="flow"> 
+    for</span><span class="operator"> (</span><span class="type">int</span> i<span class="operator">=</span><span class="int">0</span><span class="operator">;</span> i<span class="operator">&lt;</span>sol<span class="operator">.</span>numVecs<span class="operator">;</span> i<span class="operator">++) {</span>
+      T<span class="operator">(</span>i<span class="operator">,</span>i<span class="operator">) =</span> evals<span class="operator">[</span>i<span class="operator">].</span>realpart<span class="operator">;
+    }</span>
+    A<span class="operator">-&gt;</span>Apply<span class="operator">( *</span>evecs<span class="operator">,</span> tempAevec<span class="operator"> );</span>
+    MVT<span class="operator">::</span>MvTimesMatAddMv<span class="operator">( -</span><span class="float">1.0</span><span class="operator">, *</span>evecs<span class="operator">,</span> T<span class="operator">,</span><span class="float"> 1.0</span><span class="operator">,</span> tempAevec<span class="operator"> );</span>
+    MVT<span class="operator">::</span>MvNorm<span class="operator">(</span> tempAevec<span class="operator">,</span> normR<span class="operator"> );
+  }</span><span class="comment">
+
+  // Print the results
+</span>  std<span class="operator">::</span>cout<span class="operator">&lt;&lt;</span><span class="string">"Solver manager returned "</span><span class="operator"> &lt;&lt; (</span>returnCode<span class="operator"> ==</span> Anasazi<span class="operator">::</span>Converged<span class="operator"> ?</span><span class="string"> "converged."</span><span class="operator"> :</span><span class="string"> "unconverged."</span><span class="operator">) &lt;&lt;</span> std<span class="operator">::</span>endl<span class="operator">;</span>
+  std<span class="operator">::</span>cout<span class="operator">&lt;&lt;</span>std<span class="operator">::</span>endl<span class="operator">;</span>
+  std<span class="operator">::</span>cout<span class="operator">&lt;&lt;</span><span class="string">"------------------------------------------------------"</span><span class="operator">&lt;&lt;</span>std<span class="operator">::</span>endl<span class="operator">;</span>
+  std<span class="operator">::</span>cout<span class="operator">&lt;&lt;</span>std<span class="operator">::</span>setw<span class="operator">(</span><span class="int">16</span><span class="operator">)&lt;&lt;</span><span class="string">"Eigenvalue"</span><span class="operator">
+           &lt;&lt;</span>std<span class="operator">::</span>setw<span class="operator">(</span><span class="int">18</span><span class="operator">)&lt;&lt;</span><span class="string">"Direct Residual"</span><span class="operator">
+           &lt;&lt;</span>std<span class="operator">::</span>endl<span class="operator">;</span>
+  std<span class="operator">::</span>cout<span class="operator">&lt;&lt;</span><span class="string">"------------------------------------------------------"</span><span class="operator">&lt;&lt;</span>std<span class="operator">::</span>endl<span class="operator">;</span><span class="flow">
+  for</span><span class="operator"> (</span><span class="type">int</span> i<span class="operator">=</span><span class="int">0</span><span class="operator">;</span> i<span class="operator">&lt;</span>sol<span class="operator">.</span>numVecs<span class="operator">;</span> i<span class="operator">++) {</span>
+    std<span class="operator">::</span>cout<span class="operator">&lt;&lt;</span>std<span class="operator">::</span>setw<span class="operator">(</span><span class="int">16</span><span class="operator">)&lt;&lt;</span>evals<span class="operator">[</span>i<span class="operator">].</span>realpart<span class="operator">
+             &lt;&lt;</span>std<span class="operator">::</span>setw<span class="operator">(</span><span class="int">18</span><span class="operator">)&lt;&lt;</span>normR<span class="operator">[</span>i<span class="operator">]/</span>evals<span class="operator">[</span>i<span class="operator">].</span>realpart<span class="operator">
+             &lt;&lt;</span>std<span class="operator">::</span>endl<span class="operator">;
+  }</span>
+  std<span class="operator">::</span>cout<span class="operator">&lt;&lt;</span><span class="string">"------------------------------------------------------"</span><span class="operator">&lt;&lt;</span>std<span class="operator">::</span>endl<span class="operator">;</span><span class="pre">
+
+#ifdef HAVE_MPI
+</span>  MPI_Finalize<span class="operator">() ;</span><span class="pre"> 
+#endif
+</span><span class="flow">
+  return</span><span class="int"> 0</span><span class="operator">;
+}</span></pre>
+
+
+</body></html>
