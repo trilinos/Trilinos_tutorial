@@ -257,8 +257,8 @@ powerMethod (double & lambda,
           resid.Update (1.0, z, -lambda, q, 0.0); // resid := A*q - lambda*q
           resid.Norm2 (&residual);                // residual := ||resid||_2
           if (verbose) 
-            cout << "Iter = " << iter << "  Lambda = " << lambda 
-                 << "  Residual of A*q - lambda*q = " << residual << endl;
+            std::cout << "Iter = " << iter << "  Lambda = " << lambda 
+                 << "  Residual of A*q - lambda*q = " << residual << std::endl;
         } 
       if (residual < tolerance) { // We've converged!
         ierr = 0;

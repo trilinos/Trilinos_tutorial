@@ -324,8 +324,8 @@ main (int argc, char **argv)
       // larger nonlinear problem, you could safely use the code
       // below.)
       if (Comm.MyPID() == 0) {
-        cout << endl << "-- Parameter List From Solver --" << endl;
-        solver->getList ().print (cout);
+        std::cout << std::endl << "-- Parameter List From Solver --" << std::endl;
+        solver->getList ().print (std::cout);
       }
 
       // Get the Epetra_Vector with the final solution from the solver.
@@ -336,17 +336,17 @@ main (int argc, char **argv)
         dynamic_cast<const NOX::Epetra::Vector&> (finalGroup.getX ()).getEpetraVector ();
 
       if (Comm.MyPID() == 0) {
-        cout << "Computed solution: " << endl;
+        std::cout << "Computed solution: " << std::endl;
       }
       // Epetra objects know how to print themselves politely when
       // their operator<<(std::ostream&) is invoked on all MPI
       // process(es) in the communicator to which they are associated.
-      cout << finalSolution;
+      std::cout << finalSolution;
 
       if (Comm.MyPID() == 0) {
-        cout << "Exact solution: " << endl;
+        std::cout << "Exact solution: " << std::endl;
       }
-      cout << ExactSolution;
+      std::cout << ExactSolution;
     }
 
   // Remember how we quieted all MPI processes but Proc 0 above?

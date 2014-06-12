@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
   solver.Iterate(Niters, 1e-12);
 
   // print out some information about the preconditioner
-  if( Comm.MyPID() == 0 ) cout << MLPrec->GetOutputList();
+  if( Comm.MyPID() == 0 ) std::cout << MLPrec->GetOutputList();
 
   delete MLPrec;
 
@@ -110,10 +110,10 @@ int main(int argc, char *argv[])
 
   if( Comm.MyPID()==0 ) {
 
-    cout << "||b-Ax||_2 = " << residual << endl;
-    cout << "||x_exact - x||_2 = " << diff << endl;
+    std::cout << "||b-Ax||_2 = " << residual << std::endl;
+    std::cout << "||x_exact - x||_2 = " << diff << std::endl;
 
-    cout << "Total Time = " << Time.ElapsedTime() << endl;
+    std::cout << "Total Time = " << Time.ElapsedTime() << std::endl;
   }
 
   if (residual > 1e-5)

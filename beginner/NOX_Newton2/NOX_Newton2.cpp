@@ -473,8 +473,8 @@ main (int argc, char **argv)
 
   // Print the result.
   if (Comm.MyPID() == 0) {
-    cout << endl << "-- Parameter List From Solver --" << endl;
-    solver->getList ().print (cout);
+    std::cout << std::endl << "-- Parameter List From Solver --" << std::endl;
+    solver->getList ().print (std::cout);
   }
 
   // Get the Epetra_Vector with the final solution from the solver.
@@ -489,21 +489,21 @@ main (int argc, char **argv)
   // the output will get mixed up when running with multiple MPI
   // processes.
   Comm.Barrier ();
-  cout.flush ();
+  std::cout.flush ();
 
   if (Comm.MyPID() == 0) {
-    cout << "Computed solution : " << endl;
+    std::cout << "Computed solution : " << std::endl;
   }
 
   // Add a barrier and flush cout, so that the above header line
   // appears before the rest of the vector data.
   Comm.Barrier ();
-  cout.flush ();
+  std::cout.flush ();
 
   // Epetra objects know how to print themselves politely when
   // their operator<<(std::ostream&) is invoked on all MPI
   // process(es) in the communicator to which they are associated.
-  cout << finalSolution;
+  std::cout << finalSolution;
 
 #ifdef HAVE_MPI
   MPI_Finalize();

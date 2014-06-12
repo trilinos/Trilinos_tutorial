@@ -80,7 +80,7 @@ main (int argc, char *argv[])
 
   // Print out some information about the preconditioner
   if (Comm.MyPID() == 0) 
-    cout << MLPrec->GetOutputList();
+    std::cout << MLPrec->GetOutputList();
 
   // We're done with the preconditioner now, so we can deallocate it.
   delete MLPrec;
@@ -102,12 +102,12 @@ main (int argc, char *argv[])
 
   if (Comm.MyPID()==0) {
     const int numProcs = Comm.NumProc ();
-    cout << "||b-Ax||_2 = " << residual << endl
-         << "||x_exact - x||_2 = " << diff << endl
+    std::cout << "||b-Ax||_2 = " << residual << std::endl
+         << "||x_exact - x||_2 = " << diff << std::endl
          << "Min total time (s) over " << numProcs << " processes: " 
-         << minElapsedTime << endl
+         << minElapsedTime << std::endl
          << "Max total time (s) over " << numProcs << " processes: "
-         << maxElapsedTime << endl;
+         << maxElapsedTime << std::endl;
   }
 
 #ifdef EPETRA_MPI

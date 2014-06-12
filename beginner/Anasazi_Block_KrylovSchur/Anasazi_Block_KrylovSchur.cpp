@@ -180,9 +180,9 @@ main (int argc, char *argv[])
       // The singular values of the matrix A are the square roots of the
       // eigenvalues of A^T * A.
       if (MyPID == 0) {
-        cout << "------------------------------------------------------" << endl;
-        cout << "Computed Singular Values: " << endl;
-        cout << "------------------------------------------------------" << endl;
+        std::cout << "------------------------------------------------------" << std::endl;
+        std::cout << "Computed Singular Values: " << std::endl;
+        std::cout << "------------------------------------------------------" << std::endl;
       }
       for (int i = 0; i < computedNumSingularValues; ++i) {
         // The operator A^T * A is symmetric, so the eigenvalues
@@ -236,23 +236,23 @@ main (int argc, char *argv[])
       if (MyPID == 0) {
         // It's rude to set the ostream flags without restoring their 
         // original values when you're done.
-        std::ios_base::fmtflags originalFlags = cout.flags ();
+        std::ios_base::fmtflags originalFlags = std::cout.flags ();
 
         // Set the flags on cout for nice neat output.
-        cout.setf (std::ios_base::right, std::ios_base::adjustfield);
-        cout << std::setw(16) << "Singular Value"
+        std::cout.setf (std::ios_base::right, std::ios_base::adjustfield);
+        std::cout << std::setw(16) << "Singular Value"
              << std::setw(20) << "Direct Residual"
-             << endl;
-        cout << "------------------------------------------------------" << endl;
+             << std::endl;
+        std::cout << "------------------------------------------------------" << std::endl;
         for (int i = 0; i < computedNumSingularValues; ++i) {
-          cout << std::setw(16) << evals[i].realpart
+          std::cout << std::setw(16) << evals[i].realpart
                << std::setw(20) << directnrm[i] 
-               << endl;
+               << std::endl;
         }  
-        cout << "------------------------------------------------------" << endl;
+        std::cout << "------------------------------------------------------" << std::endl;
 
         // Restore cout's original flags.
-        cout.flags (originalFlags);
+        std::cout.flags (originalFlags);
       }
     }
 
@@ -346,8 +346,8 @@ solve (const Teuchos::RCP<Epetra_Operator>& A,
   Anasazi::ReturnType returnCode = MySolverMgr.solve();
 
   if (returnCode != Anasazi::Converged && Comm.MyPID() == 0) {
-    cout << "The Anasazi solver's solve() routine returned Unconverged." 
-         << endl;
+    std::cout << "The Anasazi solver's solve() routine returned Unconverged." 
+         << std::endl;
   }
 
   // Get the eigenvalues and eigenvectors from the eigenproblem.
@@ -477,7 +477,7 @@ buildSparseMatrix (const Epetra_Comm& Comm,
     // from being interleaved.
     std::ostringstream os;
     os << "*** Error on MPI process " << MyPID << ": " << e.what();
-    cerr << os.str() << endl;
+    std::cerr << os.str() << std::endl;
     if (info == 0)
       info = -1; // All procs will share info later on.
   }
