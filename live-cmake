@@ -2,6 +2,6 @@
 # This cmake invocation works for Linux
 #
 cmake \
--DCMAKE_PREFIX_PATH:PATH=/usr/local/ACTS/gnu-4.6.2/openmpi-1.5.4/trilinos-10.10.0/ \
+-DCMAKE_PREFIX_PATH:PATH=/usr/local/ACTS/gnu-4.6.2/openmpi-1.5.4/trilinos-11.9/ \
 ../
 
