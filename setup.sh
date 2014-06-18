@@ -1,3 +1,6 @@
 #!/bin/tcsh
-module load `cat modules`
+module load gnu 
+module load openmpi 
+module load trilinos
+module load netcdf
 module list
