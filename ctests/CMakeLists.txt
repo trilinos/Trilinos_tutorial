@@ -27,7 +27,7 @@ add_test(Epetra_CrsMatrix_test_mpi_7proc mpiexec -np 7 Epetra_CrsMatrix -v)
 #add_test(Epetra_CrsMatrix_test_mpi_20proc mpiexec -np 20 Epetra_CrsMatrix -v)
 
 
-ADD_SUBDIRECTORY(Belos_Block)
+#ADD_SUBDIRECTORY(Belos_Block)
 ADD_SUBDIRECTORY(Epetraext_MatrixMatrix)
 ADD_SUBDIRECTORY(Stratimikos_Preconditioner)
 ADD_SUBDIRECTORY(Stratimikos_Solver_Driver)
