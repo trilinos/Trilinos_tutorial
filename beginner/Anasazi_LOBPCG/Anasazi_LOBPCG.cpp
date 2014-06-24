@@ -1,128 +1,186 @@
+// This example computes the eigenvalues of largest magnitude of an
+// eigenvalue problem $A x = \lambda x$, using Anasazi's
+// implementation of the LOBPCG method.
+
+// Include header for LOBPCG eigensolver
+#include "AnasaziLOBPCGSolMgr.hpp"
+// Include header to define eigenproblem Ax = \lambda*x
+#include "AnasaziBasicEigenproblem.hpp"
+// Include header to provide Anasazi with Epetra adapters.  If you
+// plan to use Tpetra objects instead of Epetra objects, include
+// AnasaziTpetraAdapter.hpp instead; do analogously if you plan to use
+// Thyra objects instead of Epetra objects.
+#include "AnasaziEpetraAdapter.hpp"
+// Include header for Epetra sparse matrix and multivector.
 #include "Epetra_CrsMatrix.h"
 #include "Epetra_MultiVector.h"
+// The Trilinos package Galeri has many example problems.
 #include "Galeri_Maps.h"
 #include "Galeri_CrsMatrices.h"
-#include "Teuchos_ParameterList.hpp"
-#include "Teuchos_RCP.hpp"
-#include "AnasaziBasicEigenproblem.hpp"
-#include "AnasaziLOBPCGSolMgr.hpp"
-#include "AnasaziEpetraAdapter.hpp"
-#ifdef HAVE_MPI
-#include "Epetra_MpiComm.h"
+// Include selected communicator class required by Epetra objects
+#ifdef EPETRA_MPI
+#  include "Epetra_MpiComm.h"
 #else
-#include "Epetra_SerialComm.h"
-#endif
+#  include "Epetra_SerialComm.h"
+#endif // EPETRA_MPI
 
-#include "../../aprepro_vhelp.h"
+// ****************************************************************************
+// BEGIN MAIN ROUTINE
+// ****************************************************************************
 
-int main(int argc, char *argv[])
+int
+main (int argc, char *argv[])
 {
-
-#ifdef HAVE_MPI
-  MPI_Init(&argc,&argv);
-  Epetra_MpiComm Comm( MPI_COMM_WORLD );
-#else
-  Epetra_SerialComm Comm;
-#endif
-
-  Teuchos::ParameterList GaleriList;
-
-  // The problem is defined on a 2D grid, global size is nx * nx.
-  int nx = 30; 
-  GaleriList.set("n", nx * nx);
-  GaleriList.set("nx", nx);
-  GaleriList.set("ny", nx);
-  Teuchos::RCP<Epetra_Map> Map = Teuchos::rcp( Galeri::CreateMap("Linear", Comm, GaleriList) );
-  Teuchos::RCP<Epetra_RowMatrix> A = Teuchos::rcp( Galeri::CreateCrsMatrix("Laplace2D", &*Map, GaleriList) );
-
-  //  Variables used for the Block Davidson Method
-  const int    nev         = 4;
-  const int    blockSize   = 5;
-  const int    numBlocks   = 8;
-  const int    maxRestarts = 100;
-  const double tol         = 1.0e-8;
-
+  using Teuchos::RCP;
+  using Teuchos::rcp;
+  using std::cerr;
+  using std::cout;
+  using std::endl;
+  // Anasazi solvers have the following template parameters:
+  //
+  //   - Scalar: The type of dot product results.
+  //   - MV: The type of (multi)vectors.
+  //   - OP: The type of operators (functions from multivector to
+  //     multivector).  A matrix (like Epetra_CrsMatrix) is an example
+  //     of an operator; an Ifpack preconditioner is another example.
+  //
+  // Here, Scalar is double, MV is Epetra_MultiVector, and OP is
+  // Epetra_Operator.
   typedef Epetra_MultiVector MV;
   typedef Epetra_Operator OP;
   typedef Anasazi::MultiVecTraits<double, Epetra_MultiVector> MVT;
 
-  // Create an Epetra_MultiVector for an initial vector to start the solver.
-  // Note:  This needs to have the same number of columns as the blocksize.
+#ifdef EPETRA_MPI
+  MPI_Init (&argc, &argv);
+  Epetra_MpiComm Comm (MPI_COMM_WORLD);
+#else
+  Epetra_SerialComm Comm;
+#endif // EPETRA_MPI
+
+  const int MyPID = Comm.MyPID ();
+
   //
-  Teuchos::RCP<Epetra_MultiVector> ivec = Teuchos::rcp( new Epetra_MultiVector(*Map, blockSize) );
-  ivec->Random();
+  // Set up the test problem.
+  //
+  // We use Trilinos' Galeri package to construct a test problem.
+  // Here, we use a discretization of the 2-D Laplacian operator.
+  // The global mesh size is nx * nx.
+  //
+  Teuchos::ParameterList GaleriList;
+  const int nx = 30;
+  GaleriList.set ("n", nx * nx);
+  GaleriList.set ("nx", nx);
+  GaleriList.set ("ny", nx);
+  RCP<Epetra_Map> Map = rcp (Galeri::CreateMap ("Linear", Comm, GaleriList));
+  RCP<Epetra_RowMatrix> A =
+    rcp (Galeri::CreateCrsMatrix ("Laplace2D", &*Map, GaleriList));
 
-  // Create the eigenproblem.
-  Teuchos::RCP<Anasazi::BasicEigenproblem<double, MV, OP> > problem =
-    Teuchos::rcp( new Anasazi::BasicEigenproblem<double, MV, OP>(A, ivec) );
+  // Set eigensolver parameters.
+  const double tol = 1.0e-8; // convergence tolerance
+  const int nev = 10; // number of eigenvalues for which to solve
+  const int blockSize = 5; // block size (number of eigenvectors processed at once)
+  const int maxIters = 500; // maximum number of iterations
 
-  // Inform the eigenproblem that the operator A is symmetric
-  problem->setHermitian(true);
+  // Create a set of initial vectors to start the eigensolver.
+  // This needs to have the same number of columns as the block size.
+  RCP<MV> ivec = rcp (new MV (*Map, blockSize));
+  ivec->Random ();
+
+  // Create the eigenproblem.  This object holds all the stuff about
+  // your problem that Anasazi will see.  In this case, it knows about
+  // the matrix A and the inital vectors.
+  RCP<Anasazi::BasicEigenproblem<double, MV, OP> > problem =
+    rcp (new Anasazi::BasicEigenproblem<double, MV, OP> (A, ivec));
+
+  // Tell the eigenproblem that the operator A is symmetric.
+  problem->setHermitian (true);
 
   // Set the number of eigenvalues requested
-  problem->setNEV( nev );
+  problem->setNEV (nev);
 
-  // Inform the eigenproblem that you are finishing passing it information
-  bool boolret = problem->setProblem();
+  // Tell the eigenproblem that you are finishing passing it information.
+  const bool boolret = problem->setProblem();
   if (boolret != true) {
-    std::cout<<"Anasazi::BasicEigenproblem::setProblem() returned an error." << std::endl;
-#ifdef HAVE_MPI
-    MPI_Finalize();
-#endif
+    if (MyPID == 0) {
+      cerr << "Anasazi::BasicEigenproblem::setProblem() returned an error." << endl;
+    }
+#ifdef EPETRA_MPI
+    MPI_Finalize ();
+#endif // EPETRA_MPI
     return -1;
   }
 
-  // Create parameter list to pass into the solver manager
+  // Create a ParameterList, to pass parameters into the LOBPCG
+  // eigensolver.
   Teuchos::ParameterList anasaziPL;
-  anasaziPL.set( "Which", "LM" );
-  anasaziPL.set( "Block Size", blockSize );
-  anasaziPL.set( "Maximum Iterations", 500 );
-  anasaziPL.set( "Convergence Tolerance", tol );
-  anasaziPL.set( "Verbosity", Anasazi::Errors+Anasazi::Warnings+Anasazi::TimingDetails+Anasazi::FinalSummary );
+  anasaziPL.set ("Which", "LM");
+  anasaziPL.set ("Block Size", blockSize);
+  anasaziPL.set ("Maximum Iterations", maxIters);
+  anasaziPL.set ("Convergence Tolerance", tol);
+  anasaziPL.set ("Full Ortho", true);
+  anasaziPL.set ("Use Locking", true);
+  anasaziPL.set ("Verbosity", Anasazi::Errors + Anasazi::Warnings +
+                 Anasazi::TimingDetails + Anasazi::FinalSummary);
 
-  // Create the solver manager
-  Anasazi::LOBPCGSolMgr<double, MV, OP> anasaziSolver(problem, anasaziPL);
+  // Create the LOBPCG eigensolver.
+  Anasazi::LOBPCGSolMgr<double, MV, OP> anasaziSolver (problem, anasaziPL);
 
-  // Solve the problem
-  Anasazi::ReturnType returnCode = anasaziSolver.solve();
+  // Solve the eigenvalue problem.
+  //
+  // Note that creating the eigensolver is separate from solving it.
+  // After creating the eigensolver, you may call solve() multiple
+  // times with different parameters or initial vectors.  This lets
+  // you reuse intermediate state, like allocated basis vectors.
+  Anasazi::ReturnType returnCode = anasaziSolver.solve ();
+  if (returnCode != Anasazi::Converged && MyPID == 0) {
+    cout << "Anasazi eigensolver did not converge." << endl;
+  }
 
-  // Get the eigenvalues and eigenvectors from the eigenproblem
-  Anasazi::Eigensolution<double,MV> sol = problem->getSolution();
+  // Get the eigenvalues and eigenvectors from the eigenproblem.
+  Anasazi::Eigensolution<double,MV> sol = problem->getSolution ();
+  // Anasazi returns eigenvalues as Anasazi::Value, so that if
+  // Anasazi's Scalar type is real-valued (as it is in this case), but
+  // some eigenvalues are complex, you can still access the
+  // eigenvalues correctly.  In this case, there are no complex
+  // eigenvalues, since the matrix pencil is symmetric.
   std::vector<Anasazi::Value<double> > evals = sol.Evals;
-  Teuchos::RCP<MV> evecs = sol.Evecs;
+  RCP<MV> evecs = sol.Evecs;
 
   // Compute residuals.
-  std::vector<double> normR(sol.numVecs);
+  std::vector<double> normR (sol.numVecs);
   if (sol.numVecs > 0) {
-    Teuchos::SerialDenseMatrix<int,double> T(sol.numVecs, sol.numVecs);
-    Epetra_MultiVector tempAevec( *Map, sol.numVecs );
-    T.putScalar(0.0); 
-    for (int i=0; i<sol.numVecs; i++) {
+    Teuchos::SerialDenseMatrix<int,double> T (sol.numVecs, sol.numVecs);
+    MV tempAevec (*Map, sol.numVecs);
+    T.putScalar (0.0);
+    for (int i=0; i<sol.numVecs; ++i) {
       T(i,i) = evals[i].realpart;
     }
-    A->Apply( *evecs, tempAevec );
-    MVT::MvTimesMatAddMv( -1.0, *evecs, T, 1.0, tempAevec );
-    MVT::MvNorm( tempAevec, normR );
+    A->Apply (*evecs, tempAevec);
+    MVT::MvTimesMatAddMv (-1.0, *evecs, T, 1.0, tempAevec);
+    MVT::MvNorm (tempAevec, normR);
   }
 
-  // Print the results
-  std::cout<<"Solver manager returned " << (returnCode == Anasazi::Converged ? "converged." : "unconverged.") << std::endl;
-  std::cout<<std::endl;
-  std::cout<<"------------------------------------------------------"<<std::endl;
-  std::cout<<std::setw(16)<<"Eigenvalue"
-           <<std::setw(18)<<"Direct Residual"
-           <<std::endl;
-  std::cout<<"------------------------------------------------------"<<std::endl;
-  for (int i=0; i<sol.numVecs; i++) {
-    std::cout<<std::setw(16)<<evals[i].realpart
-             <<std::setw(18)<<normR[i]/evals[i].realpart
-             <<std::endl;
+  // Print the results on MPI process 0.
+  if (MyPID == 0) {
+    cout << "Solver manager returned "
+         << (returnCode == Anasazi::Converged ? "converged." : "unconverged.")
+         << endl << endl
+         << "------------------------------------------------------" << endl
+         << std::setw(16) << "Eigenvalue"
+         << std::setw(18) << "Direct Residual"
+         << endl
+         << "------------------------------------------------------" << endl;
+    for (int i=0; i<sol.numVecs; ++i) {
+      cout << std::setw(16) << evals[i].realpart
+           << std::setw(18) << normR[i] / evals[i].realpart
+           << endl;
+    }
+    cout << "------------------------------------------------------" << endl;
   }
-  std::cout<<"------------------------------------------------------"<<std::endl;
 
-#ifdef HAVE_MPI
-  MPI_Finalize() ; 
-#endif
+#ifdef EPETRA_MPI
+  MPI_Finalize () ;
+#endif // EPETRA_MPI
 
   return 0;
 }
