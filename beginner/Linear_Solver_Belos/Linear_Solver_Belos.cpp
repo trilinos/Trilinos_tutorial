@@ -63,7 +63,7 @@ main (int argc, char *argv[])
 
   // Create the preconditioner.  For the list of PrecType values that
   // Create() accepts, please check the IFPACK documentation.
-  string PrecType = "ILU"; // incomplete LU
+  std::string PrecType = "ILU"; // incomplete LU
   int OverlapLevel = 1; // must be >= 0. If Comm.NumProc() == 1,
                         // it is ignored.
 

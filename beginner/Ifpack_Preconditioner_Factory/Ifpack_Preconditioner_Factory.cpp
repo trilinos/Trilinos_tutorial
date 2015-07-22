@@ -56,7 +56,7 @@ main (int argc, char *argv[])
   // Create the preconditioner using the Factory.  Please check the
   // IFPACK documentation for valid values of PrecType.
   //
-  string PrecType = "ILU"; // Incomplete LU factorization
+  std::string PrecType = "ILU"; // Incomplete LU factorization
   int OverlapLevel = 1;    // Must be >= 0. Ignored if Comm.NumProc() == 1.
   RCP<Ifpack_Preconditioner> Prec = 
     rcp (Factory.Create (PrecType, &*A, OverlapLevel));
