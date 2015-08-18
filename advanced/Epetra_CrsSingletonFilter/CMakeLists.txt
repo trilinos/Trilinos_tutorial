@@ -6,7 +6,7 @@ link_directories(${Trilinos_LIBRARY_DIRS} ${Trilinos_TPL_LIBRARY_DIRS} )
 # /Library/Frameworks/QtCore.framework /Library/Frameworks/QtGui.framework)
 
 #set trilinos libraries to link (LINK_LIBRARIES)
-set(LINK_LIBRARIES ${Epetra_LIBRARIES} ${Ifpack_LIBRARIES})
+set(LINK_LIBRARIES ${Ifpack_LIBRARIES} ${Epetra_LIBRARIES})
 
 #add executable
 add_executable(Epetra_CrsSingletonFilter Epetra_CrsSingletonFilter.cpp)
